@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>生字 Spot It 生成器</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    animation: {
+                        'fade-in-up': 'fadeInUp 0.3s ease-out forwards',
+                    },
+                    keyframes: {
+                        fadeInUp: {
+                            '0%': { opacity: '0', transform: 'translateY(10px) translateX(-50%)' },
+                            '100%': { opacity: '1', transform: 'translateY(0) translateX(-50%)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- React & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <style>
+        body {
+            font-family: 'PingFang TC', 'Heiti TC', 'Microsoft JhengHei', sans-serif;
+            background-color: #f0fdf4;
+        }
+        
+        /* 列印專用樣式 */
+        @media print {
+            body { background-color: white; }
+            .no-print { display: none !important; }
+            .print-area { padding: 0 !important; margin: 0 !important; width: 100% !important; max-width: none !important; }
+            .card-base {
+                border: 2px dashed #9ca3af !important;
+                background-color: transparent !important;
+                box-shadow: none !important;
+            }
+            .card-container {
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
+        }
+
+        .card-base {
+            position: relative;
+            width: 100%;
+            padding-bottom: 100%; /* 保持 1:1 比例 */
+            background-color: white;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            border: 4px solid #fca5a5;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .word-item {
+            position: absolute;
+            transform-origin: center;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-shadow: 1px 1px 0px rgba(255,255,255,0.8);
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+    </style>
+</head>
+<body oncontextmenu="return false;">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const lessons = [
+            { id: 1, name: "第一課", words: "新同學自己年跟比" },
+            { id: 2, name: "第二課", words: "外公以前工作班後" },
+            { id: 3, name: "第三課", words: "去近買東西魚還可" },
+            { id: 4, name: "第四課", words: "出先週末晚蛋飯現點" },
+            { id: 5, name: "第五課", words: "黃綠色時候花子紅白" },
+            { id: 6, name: "第六課", words: "華說對星期會每給如果" },
+            { id: 7, name: "第七課", words: "起累早洗昨過別忘用臉" },
+            { id: 8, name: "第八課", words: "送隻狗帶散步貓非愛" },
+            { id: 9, name: "第九課", words: "南北方裡校門口因為所" },
+            { id: 10, name: "第十課", words: "本著退休次旅行法國" },
+            { id: 11, name: "第十一課", words: "動物園老希望但胖真長" },
+            { id: 12, name: "第十二課", words: "久話高課寫沒題定意思" }
+        ];
+
+        function generateDobbleCards(symbols, p) {
+            let n = p + 1;
+            let cards = [];
+            
+            let card1 = [];
+            for (let i = 0; i <= p; i++) { card1.push(symbols[i]); }
+            cards.push(card1);
+
+            for (let j = 0; j < p; j++) {
+                let card = [];
+                card.push(symbols[0]);
+                for (let k = 0; k < p; k++) {
+                    card.push(symbols[p + 1 + j * p + k]);
+                }
+                cards.push(card);
+            }
+
+            for (let i = 0; i < p; i++) {
+                for (let j = 0; j < p; j++) {
+                    let card = [];
+                    card.push(symbols[i + 1]);
+                    for (let k = 0; k < p; k++) {
+                        card.push(symbols[p + 1 + k * p + (i * k + j) % p]);
+                    }
+                    cards.push(card);
+                }
+            }
+            return cards;
+        }
+
+        const colors = ['#EF4444', '#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#0ea5e9', '#f97316'];
+
+        function Card({ words, shape, size }) {
+            const n = words.length;
+            
+            // 依據卡片大小設定字體基準大小
+            const fontSizeMap = {
+                'sm': '18px',
+                'md': '24px',
+                'lg': '32px'
+            };
+            const baseFontSize = fontSizeMap[size] || '24px';
+            
+            const renderWords = words.map((word, i) => {
+                let angle, radius;
+                if (i === 0 && n > 3) {
+                    angle = 0;
+                    radius = 0;
+                } else {
+                    const ringCount = n > 3 ? n - 1 : n;
+                    const ringIndex = n > 3 ? i - 1 : i;
+                    angle = (ringIndex / ringCount) * Math.PI * 2 + (Math.random() * 0.4 - 0.2);
+                    // 方形可以允許稍微更靠邊緣的距離
+                    const maxRadius = shape === 'square' ? 35 : 30;
+                    radius = maxRadius + Math.random() * 10;
+                }
+
+                const x = 50 + radius * Math.cos(angle);
+                const y = 50 + radius * Math.sin(angle);
+                
+                const scale = 0.9 + Math.random() * 1.2; 
+                const rotation = Math.random() * 360;
+                const color = colors[i % colors.length];
+
+                return (
+                    <div 
+                        key={`${word}-${i}`} 
+                        className="word-item"
+                        style={{
+                            left: `${x}%`,
+                            top: `${y}%`,
+                            transform: `translate(-50%, -50%) rotate(${rotation}deg) scale(${scale})`,
+                            color: color,
+                            fontSize: baseFontSize
+                        }}
+                    >
+                        {word}
+                    </div>
+                );
+            });
+
+            const shapeClass = shape === 'circle' ? 'rounded-full' : 'rounded-2xl';
+
+            return (
+                <div className="card-container p-2 w-full mx-auto">
+                    <div className={`card-base ${shapeClass}`}>
+                        {renderWords}
+                    </div>
+                </div>
+            );
+        }
+
+        function App() {
+            const [inputText, setInputText] = React.useState("");
+            const [wordsPerCard, setWordsPerCard] = React.useState(3);
+            const [cards, setCards] = React.useState([]);
+            const [error, setError] = React.useState("");
+            
+            // 新增的狀態控制
+            const [cardShape, setCardShape] = React.useState("circle"); // circle 或 square
+            const [cardSize, setCardSize] = React.useState("md"); // sm, md, lg
+            const [toast, setToast] = React.useState("");
+
+            const showToast = (message) => {
+                setToast(message);
+                setTimeout(() => setToast(""), 2500);
+            };
+
+            const handleLessonAdd = (lesson) => {
+                setInputText(prev => {
+                    const newText = prev + lesson.words;
+                    const unique = Array.from(new Set(newText.split(''))).join('');
+                    return unique;
+                });
+                showToast(`➕ 已成功加入「${lesson.name}」的生字！`);
+            };
+
+            const clearInput = () => {
+                setInputText("");
+                setCards([]);
+                setError("");
+                showToast("🗑️ 字庫已清空");
+            };
+
+            const requiredWordsMap = { 3: 7, 4: 13, 6: 31, 8: 57 };
+            const primeMap = { 3: 2, 4: 3, 6: 5, 8: 7 };
+
+            const handleGenerate = () => {
+                setError("");
+                const cleanChars = inputText.replace(/[\s\p{P}]/gu, '').split('');
+                const uniqueWords = Array.from(new Set(cleanChars));
+                const requiredCount = requiredWordsMap[wordsPerCard];
+                
+                if (uniqueWords.length < requiredCount) {
+                    setError(`目前有 ${uniqueWords.length} 個不重複字。選擇「每張 ${wordsPerCard} 個字」，至少需要 ${requiredCount} 個字喔！`);
+                    setCards([]);
+                    return;
+                }
+
+                const selectedWords = uniqueWords.sort(() => 0.5 - Math.random()).slice(0, requiredCount);
+                const p = primeMap[wordsPerCard];
+                const generated = generateDobbleCards(selectedWords, p);
+                
+                const finalCards = generated.map(card => card.sort(() => 0.5 - Math.random()));
+                setCards(finalCards.sort(() => 0.5 - Math.random()));
+            };
+
+            // 重新洗牌按鈕 (只需觸發重新渲染，亂數就會重跑)
+            const handleReshuffle = () => {
+                if(cards.length > 0) {
+                    // 透過建立新陣列來強制 React 重新渲染，卡片內的亂數邏輯會自動產生新位置
+                    setCards([...cards]);
+                    showToast("🔀 卡片排版已重新洗牌！");
+                }
+            };
+
+            const uniqueCount = Array.from(new Set(inputText.replace(/[\s\p{P}]/gu, '').split(''))).length;
+            const targetCount = requiredWordsMap[wordsPerCard];
+
+            // 決定格線樣式 (包含列印時的排版)
+            let gridClass = "grid gap-4 ";
+            if (cardSize === 'sm') {
+                gridClass += "grid-cols-3 md:grid-cols-4 lg:grid-cols-5 print:grid-cols-4";
+            } else if (cardSize === 'lg') {
+                gridClass += "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 print:grid-cols-2 max-w-4xl mx-auto";
+            } else {
+                // md 預設
+                gridClass += "grid-cols-2 md:grid-cols-3 lg:grid-cols-4 print:grid-cols-3";
+            }
+
+            return (
+                <div className="min-h-screen pb-6 flex flex-col relative">
+                    {/* Toast 提示元件 */}
+                    {toast && (
+                        <div className="fixed top-24 left-1/2 z-50 animate-fade-in-up bg-gray-800 text-white px-6 py-3 rounded-full shadow-lg font-medium text-sm">
+                            {toast}
+                        </div>
+                    )}
+
+                    {/* Header */}
+                    <div className="bg-emerald-600 text-white p-6 shadow-md no-print">
+                        <div className="max-w-6xl mx-auto flex justify-between items-center">
+                            <div className="flex items-center gap-3">
+                                <i className="ph-fill ph-cards text-4xl"></i>
+                                <div>
+                                    <h1 className="text-2xl font-bold tracking-wide">生字 Spot It! 生成器</h1>
+                                    <p className="text-emerald-100 text-sm mt-1">專為海外華語老師設計的備課神器，一鍵生成好玩的找字桌遊！</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="max-w-7xl w-full mx-auto mt-8 px-4 flex flex-col md:flex-row gap-8 print-area flex-1">
+                        {/* 左側控制面板 */}
+                        <div className="w-full md:w-80 lg:w-96 flex-shrink-0 space-y-5 no-print">
+                            {/* 1. 快速加入 */}
+                            <div className="bg-white p-5 rounded-2xl shadow-sm border border-emerald-100">
+                                <h2 className="text-base font-bold text-gray-800 mb-3 flex items-center gap-2">
+                                    <i className="ph-fill ph-magic-wand text-emerald-500"></i>
+                                    1. 加入《學華語》生字
+                                </h2>
+                                <div className="grid grid-cols-3 gap-2">
+                                    {lessons.map(l => (
+                                        <button 
+                                            key={l.id}
+                                            onClick={() => handleLessonAdd(l)}
+                                            className="text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-700 py-2 rounded-lg border border-emerald-200 transition-colors duration-200 active:scale-95"
+                                            title={l.words}
+                                        >
+                                            {l.name}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* 2. 編輯字庫 */}
+                            <div className="bg-white p-5 rounded-2xl shadow-sm border border-emerald-100">
+                                <div className="flex justify-between items-center mb-2">
+                                    <h2 className="text-base font-bold text-gray-800 flex items-center gap-2">
+                                        <i className="ph-fill ph-pencil-simple-text text-emerald-500"></i>
+                                        2. 編輯生字庫
+                                    </h2>
+                                    <button onClick={clearInput} className="text-xs text-red-500 hover:text-red-600 flex items-center gap-1 px-2 py-1 rounded hover:bg-red-50 transition-colors">
+                                        <i className="ph ph-trash"></i> 清空
+                                    </button>
+                                </div>
+                                <textarea 
+                                    className="w-full h-24 p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-400 focus:outline-none resize-none text-base tracking-widest"
+                                    placeholder="點擊上方課文加入，或在此手動輸入..."
+                                    value={inputText}
+                                    onChange={(e) => setInputText(e.target.value)}
+                                ></textarea>
+                                <div className="mt-2 text-sm text-gray-500 flex justify-between">
+                                    <span>目前不重複字數：<strong className={uniqueCount >= targetCount ? 'text-emerald-600' : 'text-red-500'}>{uniqueCount}</strong> / 需 {targetCount} 字</span>
+                                </div>
+                            </div>
+
+                            {/* 3. 設定 */}
+                            <div className="bg-white p-5 rounded-2xl shadow-sm border border-emerald-100">
+                                <h2 className="text-base font-bold text-gray-800 mb-3 flex items-center gap-2">
+                                    <i className="ph-fill ph-gear text-emerald-500"></i>
+                                    3. 設定與排版
+                                </h2>
+                                
+                                <div className="space-y-4 mb-5">
+                                    {/* 難度設定 */}
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-600 mb-1">每張字數 (難度)</label>
+                                        <select 
+                                            className="w-full p-2 border border-gray-300 rounded-lg text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                                            value={wordsPerCard}
+                                            onChange={(e) => setWordsPerCard(Number(e.target.value))}
+                                        >
+                                            <option value={3}>簡單：3字 (需 7 字，適合單課)</option>
+                                            <option value={4}>適中：4字 (需 13 字，適合兩課)</option>
+                                            <option value={6}>挑戰：6字 (需 31 字，期中複習)</option>
+                                        </select>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-3">
+                                        {/* 形狀設定 */}
+                                        <div>
+                                            <label className="block text-xs font-bold text-gray-600 mb-1">卡片形狀</label>
+                                            <div className="flex bg-gray-100 rounded-lg p-1">
+                                                <button onClick={() => setCardShape('circle')} className={`flex-1 text-xs py-1.5 rounded-md flex justify-center items-center gap-1 ${cardShape === 'circle' ? 'bg-white shadow text-emerald-600 font-bold' : 'text-gray-500 hover:text-gray-700'}`}>
+                                                    <i className="ph ph-circle"></i> 圓形
+                                                </button>
+                                                <button onClick={() => setCardShape('square')} className={`flex-1 text-xs py-1.5 rounded-md flex justify-center items-center gap-1 ${cardShape === 'square' ? 'bg-white shadow text-emerald-600 font-bold' : 'text-gray-500 hover:text-gray-700'}`}>
+                                                    <i className="ph ph-square"></i> 方形
+                                                </button>
+                                            </div>
+                                        </div>
+                                        {/* 大小設定 */}
+                                        <div>
+                                            <label className="block text-xs font-bold text-gray-600 mb-1">列印大小</label>
+                                            <div className="flex bg-gray-100 rounded-lg p-1">
+                                                <button onClick={() => setCardSize('sm')} className={`flex-1 text-xs py-1.5 rounded-md ${cardSize === 'sm' ? 'bg-white shadow text-emerald-600 font-bold' : 'text-gray-500'}`}>小</button>
+                                                <button onClick={() => setCardSize('md')} className={`flex-1 text-xs py-1.5 rounded-md ${cardSize === 'md' ? 'bg-white shadow text-emerald-600 font-bold' : 'text-gray-500'}`}>中</button>
+                                                <button onClick={() => setCardSize('lg')} className={`flex-1 text-xs py-1.5 rounded-md ${cardSize === 'lg' ? 'bg-white shadow text-emerald-600 font-bold' : 'text-gray-500'}`}>大</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {error && (
+                                    <div className="mb-4 p-2 bg-red-50 text-red-600 text-xs rounded-lg border border-red-200 flex items-start gap-1">
+                                        <i className="ph-fill ph-warning-circle text-base"></i>
+                                        <span>{error}</span>
+                                    </div>
+                                )}
+
+                                <button 
+                                    onClick={handleGenerate}
+                                    className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 rounded-xl shadow-md transition-transform transform active:scale-95 flex items-center justify-center gap-2"
+                                >
+                                    <i className="ph-bold ph-magic-wand"></i>
+                                    {cards.length > 0 ? "重新生成新組合" : "產生卡片"}
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* 右側卡片顯示區 */}
+                        <div className="w-full flex-1 print-area">
+                            {cards.length === 0 ? (
+                                <div className="h-full min-h-[400px] border-2 border-dashed border-gray-300 rounded-2xl flex flex-col items-center justify-center text-gray-400 p-8 no-print bg-white/50">
+                                    <i className="ph-fill ph-cards text-6xl mb-4 text-emerald-200"></i>
+                                    <p className="text-xl font-bold text-gray-500">準備好大顯身手了嗎？</p>
+                                    <p className="mt-2 text-center text-sm max-w-sm text-gray-400">從左側加入生字，設定好難度與形狀後，點擊生成。</p>
+                                </div>
+                            ) : (
+                                <div>
+                                    <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 no-print bg-white p-4 rounded-xl shadow-sm border border-emerald-50">
+                                        <div>
+                                            <h2 className="text-lg font-bold text-gray-800">
+                                                預覽結果 <span className="text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full text-sm ml-2">{cards.length} 張</span>
+                                            </h2>
+                                            <p className="text-xs text-gray-500 mt-1">💡 如果有字體擋到彼此，可以點擊「重新洗牌」調整位置。</p>
+                                        </div>
+                                        <div className="flex gap-2 w-full sm:w-auto">
+                                            <button 
+                                                onClick={handleReshuffle}
+                                                className="flex-1 sm:flex-none bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-1 text-sm border border-indigo-200"
+                                            >
+                                                <i className="ph-bold ph-arrows-clockwise"></i>
+                                                洗牌排版
+                                            </button>
+                                            <button 
+                                                onClick={() => window.print()}
+                                                className="flex-1 sm:flex-none bg-gray-800 hover:bg-gray-900 text-white font-bold py-2 px-5 rounded-lg shadow transition-transform transform active:scale-95 flex items-center justify-center gap-2 text-sm"
+                                            >
+                                                <i className="ph-bold ph-printer"></i>
+                                                列印
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    {/* 卡片網格區 */}
+                                    <div className={gridClass}>
+                                        {cards.map((card, idx) => (
+                                            <Card key={`card-${idx}`} words={card} shape={cardShape} size={cardSize} />
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Footer */}
+                    <footer className="mt-12 mb-2 text-center text-emerald-800/60 text-sm font-medium no-print">
+                        Created by Sophia Wong
+                    </footer>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
