@@ -39,6 +39,9 @@
         
         /* 列印專用樣式 */
         @media print {
+            @page {
+                margin: 10mm; /* 最大化利用紙張空間 */
+            }
             body { background-color: white; }
             .no-print { display: none !important; }
             .print-area { padding: 0 !important; margin: 0 !important; width: 100% !important; max-width: none !important; }
@@ -46,10 +49,12 @@
                 border: 2px dashed #9ca3af !important;
                 background-color: transparent !important;
                 box-shadow: none !important;
+                transform: none !important; /* 列印時取消浮動特效 */
             }
             .card-container {
-                page-break-inside: avoid;
-                break-inside: avoid;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+                margin-bottom: 10px;
             }
         }
 
@@ -62,6 +67,15 @@
             border: 4px solid #fca5a5;
             overflow: hidden;
             transition: all 0.3s ease;
+        }
+        
+        /* 網頁上滑過卡片時的互動特效 */
+        @media screen {
+            .card-base:hover {
+                transform: translateY(-2px) scale(1.02);
+                box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+                border-color: #f87171;
+            }
         }
 
         .word-item {
@@ -131,40 +145,48 @@
         function Card({ words, shape, size }) {
             const n = words.length;
             
+            // 基礎字體大小稍微調大
             const fontSizeMap = {
-                'sm': 20,
-                'md': 28,
-                'lg': 38
+                'sm': 22,
+                'md': 30,
+                'lg': 40
             };
-            const baseFontSize = fontSizeMap[size] || 28;
+            const baseFontSize = fontSizeMap[size] || 30;
+            
+            // 每張卡片隨機打亂顏色順序，確保不是只有紅字會變大
+            const shuffledColors = [...colors].sort(() => 0.5 - Math.random());
             
             const renderWords = words.map((word, i) => {
                 let angle, radius;
-                let maxPossibleScale = 1.8; // 預設最大縮放
+                let scale;
 
+                // 隨機決定哪個索引是中心大字 (或者是分布在各處)
+                // 為了讓視覺更有趣，我們不固定讓 i=0 待在中心
                 if (i === 0 && n > 3) {
+                    // 中心點的字
                     angle = 0;
                     radius = 0;
-                    maxPossibleScale = 2.0; // 中心點可以大一點
+                    // 中心字體給予明顯的大縮放
+                    scale = 1.6 + Math.random() * 0.8; 
                 } else {
                     const ringCount = n > 3 ? n - 1 : n;
                     const ringIndex = n > 3 ? i - 1 : i;
-                    angle = (ringIndex / ringCount) * Math.PI * 2 + (Math.random() * 0.4 - 0.2);
                     
-                    // 安全半徑限制：圓形限制在 32% 以內，方形限制在 36% 以內
-                    const safetyRadius = shape === 'circle' ? 32 : 36;
-                    radius = safetyRadius - (Math.random() * 10); 
+                    // 隨機角度加上偏移
+                    angle = (ringIndex / ringCount) * Math.PI * 2 + (Math.random() * 0.6 - 0.3);
                     
-                    // 動態調整縮放：越靠近邊緣，字就縮小一點
-                    maxPossibleScale = 1.8 - (radius / 50); 
+                    // 安全半徑限制
+                    const maxR = shape === 'circle' ? 32 : 36;
+                    radius = maxR - (Math.random() * 12); 
+                    
+                    // 所有字都給予 0.7 到 1.8 之間的隨機縮放，不再被嚴格限制
+                    scale = 0.7 + Math.random() * 1.1;
                 }
 
                 const x = 50 + radius * Math.cos(angle);
                 const y = 50 + radius * Math.sin(angle);
-                
-                const scale = 0.8 + Math.random() * (maxPossibleScale - 0.8); 
                 const rotation = Math.random() * 360;
-                const color = colors[i % colors.length];
+                const color = shuffledColors[i % shuffledColors.length];
 
                 return (
                     <div 
@@ -214,14 +236,14 @@
                     const unique = Array.from(new Set(newText.split(''))).join('');
                     return unique;
                 });
-                showToast(`➕ 已成功加入「${lesson.name}」的生字！`);
+                showToast(`➕ 已加入「${lesson.name}」`);
             };
 
             const clearInput = () => {
                 setInputText("");
                 setCards([]);
                 setError("");
-                showToast("🗑️ 字庫已清空");
+                showToast("🗑️ 已清空");
             };
 
             const requiredWordsMap = { 3: 7, 4: 13, 6: 31, 8: 57 };
@@ -229,12 +251,13 @@
 
             const handleGenerate = () => {
                 setError("");
+                // 使用正則表達式過濾掉空白與標點符號
                 const cleanChars = inputText.replace(/[\s\p{P}]/gu, '').split('');
                 const uniqueWords = Array.from(new Set(cleanChars));
                 const requiredCount = requiredWordsMap[wordsPerCard];
                 
                 if (uniqueWords.length < requiredCount) {
-                    setError(`目前有 ${uniqueWords.length} 個不重複字。選擇「每張 ${wordsPerCard} 個字」，至少需要 ${requiredCount} 個字喔！`);
+                    setError(`目前有 ${uniqueWords.length} 個字。選擇「每張 ${wordsPerCard} 個字」，至少需要 ${requiredCount} 個字喔！`);
                     setCards([]);
                     return;
                 }
@@ -250,7 +273,7 @@
             const handleReshuffle = () => {
                 if(cards.length > 0) {
                     setCards([...cards]);
-                    showToast("🔀 卡片排版已重新洗牌！");
+                    showToast("🔀 已重新隨機排列字體大小與位置！");
                 }
             };
 
@@ -280,7 +303,7 @@
                                 <i className="ph-fill ph-cards text-4xl"></i>
                                 <div>
                                     <h1 className="text-2xl font-bold tracking-wide">生字 Spot It! 生成器</h1>
-                                    <p className="text-emerald-100 text-sm mt-1">專為海外華語老師設計的備課神器，字體自動避開邊緣！</p>
+                                    <p className="text-emerald-100 text-sm mt-1">所有顏色與字體皆有大有小，挑戰孩子的眼力！</p>
                                 </div>
                             </div>
                         </div>
@@ -291,14 +314,14 @@
                             <div className="bg-white p-5 rounded-2xl shadow-sm border border-emerald-100">
                                 <h2 className="text-base font-bold text-gray-800 mb-3 flex items-center gap-2">
                                     <i className="ph-fill ph-magic-wand text-emerald-500"></i>
-                                    1. 加入《學華語》生字
+                                    1. 加入《學華語向前走二》生字
                                 </h2>
                                 <div className="grid grid-cols-3 gap-2">
                                     {lessons.map(l => (
                                         <button 
                                             key={l.id}
                                             onClick={() => handleLessonAdd(l)}
-                                            className="text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-700 py-2 rounded-lg border border-emerald-200 transition-colors duration-200 active:scale-95"
+                                            className="text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-700 py-2 rounded-lg border border-emerald-200 transition-colors active:scale-95"
                                         >
                                             {l.name}
                                         </button>
@@ -312,13 +335,11 @@
                                         <i className="ph-fill ph-pencil-simple-text text-emerald-500"></i>
                                         2. 編輯生字庫
                                     </h2>
-                                    <button onClick={clearInput} className="text-xs text-red-500 hover:text-red-600 px-2 py-1 rounded hover:bg-red-50">
-                                        清空
-                                    </button>
+                                    <button onClick={clearInput} className="text-xs text-red-500 hover:text-red-600 px-2 py-1 rounded hover:bg-red-50 transition-colors">清空</button>
                                 </div>
                                 <textarea 
-                                    className="w-full h-24 p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-400 focus:outline-none resize-none text-base tracking-widest"
-                                    placeholder="點擊上方加入..."
+                                    className="w-full h-24 p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-400 focus:outline-none text-base"
+                                    placeholder="點擊上方加入，或直接輸入生字..."
                                     value={inputText}
                                     onChange={(e) => setInputText(e.target.value)}
                                 ></textarea>
@@ -334,33 +355,35 @@
                                 </h2>
                                 <div className="space-y-4 mb-5">
                                     <div>
-                                        <label className="block text-xs font-bold text-gray-600 mb-1">每張字數</label>
-                                        <select className="w-full p-2 border border-gray-300 rounded-lg text-sm bg-gray-50" value={wordsPerCard} onChange={(e) => setWordsPerCard(Number(e.target.value))}>
+                                        <label className="block text-xs font-bold text-gray-600 mb-1">每張字數 (難度)</label>
+                                        <select className="w-full p-2 border border-gray-300 rounded-lg text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-emerald-400" value={wordsPerCard} onChange={(e) => setWordsPerCard(Number(e.target.value))}>
                                             <option value={3}>簡單：3字 (需 7 字)</option>
                                             <option value={4}>適中：4字 (需 13 字)</option>
                                             <option value={6}>挑戰：6字 (需 31 字)</option>
+                                            <option value={8}>魔王：8字 (需 57 字，期末複習)</option>
                                         </select>
                                     </div>
                                     <div className="grid grid-cols-2 gap-3">
                                         <div>
                                             <label className="block text-xs font-bold text-gray-600 mb-1">卡片形狀</label>
                                             <div className="flex bg-gray-100 rounded-lg p-1">
-                                                <button onClick={() => setCardShape('circle')} className={`flex-1 text-xs py-1.5 rounded-md ${cardShape === 'circle' ? 'bg-white shadow text-emerald-600 font-bold' : 'text-gray-500'}`}>圓形</button>
-                                                <button onClick={() => setCardShape('square')} className={`flex-1 text-xs py-1.5 rounded-md ${cardShape === 'square' ? 'bg-white shadow text-emerald-600 font-bold' : 'text-gray-500'}`}>方形</button>
+                                                <button onClick={() => setCardShape('circle')} className={`flex-1 text-xs py-1.5 rounded-md ${cardShape === 'circle' ? 'bg-white shadow text-emerald-600 font-bold' : 'text-gray-500 hover:text-gray-700'}`}>圓形</button>
+                                                <button onClick={() => setCardShape('square')} className={`flex-1 text-xs py-1.5 rounded-md ${cardShape === 'square' ? 'bg-white shadow text-emerald-600 font-bold' : 'text-gray-500 hover:text-gray-700'}`}>方形</button>
                                             </div>
                                         </div>
                                         <div>
                                             <label className="block text-xs font-bold text-gray-600 mb-1">列印大小</label>
                                             <div className="flex bg-gray-100 rounded-lg p-1">
-                                                <button onClick={() => setCardSize('sm')} className={`flex-1 text-xs py-1.5 rounded-md ${cardSize === 'sm' ? 'bg-white shadow text-emerald-600 font-bold' : 'text-gray-500'}`}>小</button>
-                                                <button onClick={() => setCardSize('md')} className={`flex-1 text-xs py-1.5 rounded-md ${cardSize === 'md' ? 'bg-white shadow text-emerald-600 font-bold' : 'text-gray-500'}`}>中</button>
-                                                <button onClick={() => setCardSize('lg')} className={`flex-1 text-xs py-1.5 rounded-md ${cardSize === 'lg' ? 'bg-white shadow text-emerald-600 font-bold' : 'text-gray-500'}`}>大</button>
+                                                <button onClick={() => setCardSize('sm')} className={`flex-1 text-xs py-1.5 rounded-md ${cardSize === 'sm' ? 'bg-white shadow text-emerald-600 font-bold' : 'text-gray-500 hover:text-gray-700'}`}>小</button>
+                                                <button onClick={() => setCardSize('md')} className={`flex-1 text-xs py-1.5 rounded-md ${cardSize === 'md' ? 'bg-white shadow text-emerald-600 font-bold' : 'text-gray-500 hover:text-gray-700'}`}>中</button>
+                                                <button onClick={() => setCardSize('lg')} className={`flex-1 text-xs py-1.5 rounded-md ${cardSize === 'lg' ? 'bg-white shadow text-emerald-600 font-bold' : 'text-gray-500 hover:text-gray-700'}`}>大</button>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                                {error && <div className="mb-4 p-2 bg-red-50 text-red-600 text-xs rounded-lg border border-red-200">{error}</div>}
-                                <button onClick={handleGenerate} className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 rounded-xl shadow-md active:scale-95 transition-all">
+                                {error && <div className="mb-4 p-2 bg-red-50 text-red-600 text-xs rounded-lg border border-red-200 flex items-center gap-1"><i className="ph-fill ph-warning-circle"></i>{error}</div>}
+                                <button onClick={handleGenerate} className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 rounded-xl shadow-md active:scale-95 transition-all flex justify-center items-center gap-2">
+                                    <i className="ph-bold ph-cards"></i>
                                     產生卡片
                                 </button>
                             </div>
@@ -370,15 +393,19 @@
                             {cards.length === 0 ? (
                                 <div className="h-full min-h-[400px] border-2 border-dashed border-gray-300 rounded-2xl flex flex-col items-center justify-center text-gray-400 p-8 no-print bg-white/50">
                                     <i className="ph-fill ph-cards text-6xl mb-4 text-emerald-200"></i>
-                                    <p className="text-xl font-bold text-gray-500">準備好大顯身手了嗎？</p>
+                                    <p className="text-xl font-bold text-gray-500">點擊左側加入生字開始！</p>
                                 </div>
                             ) : (
                                 <div>
                                     <div className="mb-6 flex flex-col sm:flex-row justify-between items-center gap-4 no-print bg-white p-4 rounded-xl shadow-sm border border-emerald-50">
-                                        <div className="text-sm font-bold text-gray-700">✅ 字體安全區域已自動調整，防止邊緣裁切</div>
+                                        <div className="text-sm font-bold text-emerald-700">✨ 每個字的大小與顏色順序均已隨機化</div>
                                         <div className="flex gap-2">
-                                            <button onClick={handleReshuffle} className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold py-2 px-4 rounded-lg border border-indigo-200 text-sm">洗牌重排</button>
-                                            <button onClick={() => window.print()} className="bg-gray-800 hover:bg-gray-900 text-white font-bold py-2 px-5 rounded-lg shadow text-sm">列印卡片</button>
+                                            <button onClick={handleReshuffle} className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold py-2 px-4 rounded-lg border border-indigo-200 text-sm flex items-center gap-1">
+                                                <i className="ph-bold ph-arrows-clockwise"></i>洗牌重排
+                                            </button>
+                                            <button onClick={() => window.print()} className="bg-gray-800 hover:bg-gray-900 text-white font-bold py-2 px-5 rounded-lg shadow text-sm flex items-center gap-1">
+                                                <i className="ph-bold ph-printer"></i>列印卡片
+                                            </button>
                                         </div>
                                     </div>
                                     <div className={gridClass}>
