@@ -40,7 +40,7 @@
         /* 列印專用樣式 */
         @media print {
             @page {
-                margin: 10mm; /* 最大化利用紙張空間 */
+                margin: 10mm 10mm 5mm 10mm; /* 把下方邊界縮到最小，讓簽名能貼齊最底端 */
             }
             body { background-color: white; }
             .no-print { display: none !important; }
@@ -140,12 +140,22 @@
             return cards;
         }
 
-        const colors = ['#EF4444', '#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#0ea5e9', '#f97316'];
+        // 使用大自然的黃金角 (137.508度) 來生成全局色盤，確保顏色最大程度錯開
+        const generateGlobalPalette = (count) => {
+            const colors = [];
+            for (let i = 0; i < count; i++) {
+                const hue = (i * 137.508) % 360;
+                // 若顏色介於黃色到淺綠色之間，調暗一點確保白底上的閱讀性
+                let lightness = 45;
+                if (hue > 40 && hue < 100) lightness = 35; 
+                colors.push(`hsl(${Math.floor(hue)}, 85%, ${lightness}%)`);
+            }
+            return colors;
+        };
 
-        function Card({ words, shape, size }) {
+        function Card({ words, shape, size, colorMode, wordColorMap }) {
             const n = words.length;
             
-            // 基礎字體大小稍微調大
             const fontSizeMap = {
                 'sm': 22,
                 'md': 30,
@@ -153,40 +163,44 @@
             };
             const baseFontSize = fontSizeMap[size] || 30;
             
-            // 每張卡片隨機打亂顏色順序，確保不是只有紅字會變大
-            const shuffledColors = [...colors].sort(() => 0.5 - Math.random());
+            // 【隨機模式專用】：完美均分色相環！
+            // 如果卡片有 8 個字，就會剛好生成 8 個相距 45 度的顏色，100% 不會相近！
+            const cardColors = React.useMemo(() => {
+                const arr = [];
+                for (let i = 0; i < n; i++) {
+                    const hue = (360 / n) * i;
+                    let lightness = 45;
+                    if (hue > 40 && hue < 100) lightness = 35; // 保護黃/綠色的對比度
+                    arr.push(`hsl(${Math.floor(hue)}, 90%, ${lightness}%)`);
+                }
+                // 隨機打亂這些完美錯開的顏色
+                return arr.sort(() => 0.5 - Math.random());
+            }, [n]);
             
             const renderWords = words.map((word, i) => {
-                let angle, radius;
-                let scale;
+                let angle, radius, scale;
 
-                // 隨機決定哪個索引是中心大字 (或者是分布在各處)
-                // 為了讓視覺更有趣，我們不固定讓 i=0 待在中心
                 if (i === 0 && n > 3) {
-                    // 中心點的字
                     angle = 0;
                     radius = 0;
-                    // 中心字體給予明顯的大縮放
                     scale = 1.6 + Math.random() * 0.8; 
                 } else {
                     const ringCount = n > 3 ? n - 1 : n;
                     const ringIndex = n > 3 ? i - 1 : i;
-                    
-                    // 隨機角度加上偏移
                     angle = (ringIndex / ringCount) * Math.PI * 2 + (Math.random() * 0.6 - 0.3);
-                    
-                    // 安全半徑限制
                     const maxR = shape === 'circle' ? 32 : 36;
                     radius = maxR - (Math.random() * 12); 
-                    
-                    // 所有字都給予 0.7 到 1.8 之間的隨機縮放，不再被嚴格限制
                     scale = 0.7 + Math.random() * 1.1;
                 }
 
                 const x = 50 + radius * Math.cos(angle);
                 const y = 50 + radius * Math.sin(angle);
                 const rotation = Math.random() * 360;
-                const color = shuffledColors[i % shuffledColors.length];
+                
+                // 套用色彩演算法
+                const color = colorMode === 'fixed' 
+                    ? wordColorMap[word] 
+                    : cardColors[i]; // 因為 cardColors 已經完美均分且打亂，直接拿第 i 個絕對不重複
 
                 return (
                     <div 
@@ -223,6 +237,11 @@
             const [error, setError] = React.useState("");
             const [cardShape, setCardShape] = React.useState("circle");
             const [cardSize, setCardSize] = React.useState("md");
+            
+            // 顏色模式與固定顏色對照表
+            const [colorMode, setColorMode] = React.useState("fixed"); 
+            const [wordColorMap, setWordColorMap] = React.useState({});
+
             const [toast, setToast] = React.useState("");
 
             const showToast = (message) => {
@@ -251,7 +270,6 @@
 
             const handleGenerate = () => {
                 setError("");
-                // 使用正則表達式過濾掉空白與標點符號
                 const cleanChars = inputText.replace(/[\s\p{P}]/gu, '').split('');
                 const uniqueWords = Array.from(new Set(cleanChars));
                 const requiredCount = requiredWordsMap[wordsPerCard];
@@ -262,7 +280,19 @@
                     return;
                 }
 
+                // 隨機選出需要的字數
                 const selectedWords = uniqueWords.sort(() => 0.5 - Math.random()).slice(0, requiredCount);
+                
+                // 為這批字建立專屬的「顏色對照表」
+                const currentPalette = generateGlobalPalette(selectedWords.length);
+                const shuffledPalette = currentPalette.sort(() => 0.5 - Math.random());
+                const newColorMap = {};
+                selectedWords.forEach((word, index) => {
+                    newColorMap[word] = shuffledPalette[index];
+                });
+                setWordColorMap(newColorMap);
+
+                // 生成達寶卡片演算法
                 const p = primeMap[wordsPerCard];
                 const generated = generateDobbleCards(selectedWords, p);
                 
@@ -303,7 +333,7 @@
                                 <i className="ph-fill ph-cards text-4xl"></i>
                                 <div>
                                     <h1 className="text-2xl font-bold tracking-wide">生字 Spot It! 生成器</h1>
-                                    <p className="text-emerald-100 text-sm mt-1">所有顏色與字體皆有大有小，挑戰孩子的眼力！</p>
+                                    <p className="text-emerald-100 text-sm mt-1">動態色彩演算法：告別相近色，找字更清晰！</p>
                                 </div>
                             </div>
                         </div>
@@ -363,6 +393,15 @@
                                             <option value={8}>魔王：8字 (需 57 字，期末複習)</option>
                                         </select>
                                     </div>
+                                    
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-600 mb-1">字體顏色</label>
+                                        <div className="flex bg-gray-100 rounded-lg p-1">
+                                            <button onClick={() => setColorMode('fixed')} className={`flex-1 text-xs py-1.5 rounded-md ${colorMode === 'fixed' ? 'bg-white shadow text-emerald-600 font-bold' : 'text-gray-500 hover:text-gray-700'}`}>固定 (易認字)</button>
+                                            <button onClick={() => setColorMode('random')} className={`flex-1 text-xs py-1.5 rounded-md ${colorMode === 'random' ? 'bg-white shadow text-emerald-600 font-bold' : 'text-gray-500 hover:text-gray-700'}`}>隨機 (挑戰高)</button>
+                                        </div>
+                                    </div>
+
                                     <div className="grid grid-cols-2 gap-3">
                                         <div>
                                             <label className="block text-xs font-bold text-gray-600 mb-1">卡片形狀</label>
@@ -398,7 +437,9 @@
                             ) : (
                                 <div>
                                     <div className="mb-6 flex flex-col sm:flex-row justify-between items-center gap-4 no-print bg-white p-4 rounded-xl shadow-sm border border-emerald-50">
-                                        <div className="text-sm font-bold text-emerald-700">✨ 每個字的大小與顏色順序均已隨機化</div>
+                                        <div className="text-sm font-bold text-emerald-700">
+                                            {colorMode === 'fixed' ? '✨ 【固定顏色】：同一個字顏色皆相同，相近色機率已降至最低' : '✨ 【隨機顏色】：單一卡片顏色保證絕對互斥，100% 不相近'}
+                                        </div>
                                         <div className="flex gap-2">
                                             <button onClick={handleReshuffle} className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold py-2 px-4 rounded-lg border border-indigo-200 text-sm flex items-center gap-1">
                                                 <i className="ph-bold ph-arrows-clockwise"></i>洗牌重排
@@ -410,7 +451,14 @@
                                     </div>
                                     <div className={gridClass}>
                                         {cards.map((card, idx) => (
-                                            <Card key={`card-${idx}`} words={card} shape={cardShape} size={cardSize} />
+                                            <Card 
+                                                key={`card-${idx}`} 
+                                                words={card} 
+                                                shape={cardShape} 
+                                                size={cardSize}
+                                                colorMode={colorMode}
+                                                wordColorMap={wordColorMap}
+                                            />
                                         ))}
                                     </div>
                                 </div>
@@ -418,7 +466,7 @@
                         </div>
                     </div>
 
-                    <footer className="mt-12 mb-2 text-center text-emerald-800/60 text-sm font-medium no-print">
+                    <footer className="mt-8 mb-2 text-center text-emerald-800/60 text-sm font-medium print:fixed print:bottom-0 print:left-0 print:w-full print:text-gray-400 print:text-[11px] print:pb-0 print:mt-0">
                         Created by Sophia Wong
                     </footer>
                 </div>
