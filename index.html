@@ -40,7 +40,7 @@
         /* 列印專用樣式 */
         @media print {
             @page {
-                margin: 10mm 10mm 12mm 10mm; /* 增加底部邊界，給頁尾更多空間 */
+                margin: 10mm 10mm 12mm 10mm; 
             }
             body { background-color: white; }
             .no-print { display: none !important; }
@@ -57,22 +57,20 @@
                 margin-bottom: 10px;
             }
 
-            /* 🎯 專屬 Letter Size (8.5x11) 一頁6張 的精準排版 */
             .size-letter6 {
                 grid-template-columns: repeat(2, 1fr) !important;
                 row-gap: 6mm !important;
                 column-gap: 4mm !important;
             }
             .size-letter6 .card-container {
-                width: 78mm !important; /* 稍微縮小，避免擠壓到頁尾 */
+                width: 78mm !important; 
                 max-width: 78mm !important;
                 margin: 0 auto !important;
             }
 
-            /* 🎯 方形卡片「一刀切」緊密排版 (列印專用調整) */
             .size-letter6.shape-square-grid {
                 justify-content: center !important;
-                grid-template-columns: 78mm 78mm !important; /* 同步稍微縮小 */
+                grid-template-columns: 78mm 78mm !important; 
                 row-gap: 0 !important;
                 column-gap: 0 !important;
             }
@@ -80,22 +78,44 @@
                 margin: 0 !important;
             }
             .shape-square-grid .card-base {
-                border: 1px solid #9ca3af !important; /* 實線切割更精準 */
+                border: 1px solid #9ca3af !important; 
+            }
+
+            /* 🎯 專屬 Letter Size (8.5x11) 一頁12張 的精準排版 (取代原本的8張) */
+            .size-letter12 {
+                grid-template-columns: repeat(3, 1fr) !important;
+                row-gap: 2mm !important;
+                column-gap: 2mm !important;
+            }
+            .size-letter12 .card-container {
+                width: 64mm !important;
+                max-width: 64mm !important;
+                margin: 0 auto !important;
+            }
+
+            /* 🎯 方形卡片「一刀切」緊密排版 (列印專用調整) - 12張 */
+            .size-letter12.shape-square-grid {
+                justify-content: center !important;
+                grid-template-columns: 64mm 64mm 64mm !important;
+                row-gap: 0 !important;
+                column-gap: 0 !important;
+            }
+            .size-letter12.shape-square-grid .card-container {
+                margin: 0 !important;
             }
         }
 
         .card-base {
             position: relative;
             width: 100%;
-            padding-bottom: 100%; /* 保持 1:1 比例 */
+            padding-bottom: 100%; 
             background-color: white;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
             border: 4px solid #fca5a5;
             overflow: hidden;
-            transition: all 0.3s ease;
+            transition: box-shadow 0.3s ease, transform 0.3s ease, border-color 0.3s ease;
         }
 
-        /* 🎯 方形卡片「一刀切」緊密排版 (螢幕與列印共用) */
         .shape-square-grid {
             gap: 0 !important;
         }
@@ -106,7 +126,6 @@
             border-radius: 0 !important;
         }
         
-        /* 網頁上滑過卡片時的互動特效 */
         @media screen {
             .card-base:hover {
                 transform: translateY(-2px) scale(1.02);
@@ -122,7 +141,6 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            /* 增強白邊緣，讓重疊時依然清晰可見 */
             text-shadow: 
                 -2px -2px 0 rgba(255,255,255,0.9),  
                  2px -2px 0 rgba(255,255,255,0.9),
@@ -131,6 +149,12 @@
                  0px  4px 4px rgba(0,0,0,0.2);
             white-space: nowrap;
             user-select: none;
+            /* 新增：提示可以拖曳，並防止手機版拖曳時螢幕跟著滾動 */
+            cursor: grab;
+            touch-action: none;
+        }
+        .word-item:active {
+            cursor: grabbing;
         }
     </style>
 </head>
@@ -138,7 +162,6 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        // 📚 嚴格按照老師提供的生詞表建檔
         const lessons = [
             { id: 1, name: "第一課", chars: "新同學自己年跟比", words: "比較 大家 方友朋 高興 跟 歡迎 今年 介紹 自己 看書 認識 現在 新 學 游泳 最 中文 張莉" },
             { id: 2, name: "第二課", chars: "外公以前工作班後", words: "幫 電腦公司 工作 上班 外公 外婆 一樣 以前 銀行 醫生 做生意" },
@@ -195,124 +218,177 @@
             return colors;
         };
 
-        function Card({ words, shape, size, colorMode, wordColorMap }) {
+        // 卡片元件：新增手動拖曳排版功能與固態記憶
+        function Card({ words, shape, size, colorMode, wordColorMap, reshuffleKey }) {
             const n = words.length;
             
             const fontSizeMap = {
-                'sm': 24, // 稍微調大
-                'md': 32, // 稍微調大
-                'letter6': 36, // Letter 6張 專用字體稍微調大
-                'lg': 44  // 稍微調大
+                'sm': 24, 
+                'md': 32, 
+                'letter12': 28, 
+                'letter6': 36  
             };
             const baseFontSize = fontSizeMap[size] || 32;
             
-            const cardColors = React.useMemo(() => {
-                const arr = [];
+            // 使用 useMemo 鎖定初始排版，避免畫面其他元素更新時亂跳
+            const initialLayout = React.useMemo(() => {
+                const layouts = [];
+                const cardColors = [];
                 for (let i = 0; i < n; i++) {
                     const hue = (360 / n) * i;
                     let lightness = 45;
                     if (hue > 40 && hue < 100) lightness = 35; 
-                    arr.push(`hsl(${Math.floor(hue)}, 90%, ${lightness}%)`);
+                    cardColors.push(`hsl(${Math.floor(hue)}, 90%, ${lightness}%)`);
                 }
-                return arr.sort(() => 0.5 - Math.random());
-            }, [n]);
-            
-            const renderWords = words.map((word, i) => {
-                let angle, radius, scale;
+                cardColors.sort(() => 0.5 - Math.random());
 
-                // 智慧縮放機制：防止多字詞彙超出版面
-                let lenMod = 1;
-                const actualLength = [...word].length; 
-                if (actualLength === 2) lenMod = 0.90; // 放寬縮小限制
-                if (actualLength === 3) lenMod = 0.75; // 放寬縮小限制
-                if (actualLength >= 4) lenMod = 0.65; // 針對「超級市場」等長詞彙放寬縮小限制，不再縮到50%
+                words.forEach((word, i) => {
+                    let angle, radius, scale, rotation;
+                    let lenMod = 1;
+                    const actualLength = [...word].length; 
+                    if (actualLength === 2) lenMod = 0.90; 
+                    if (actualLength === 3) lenMod = 0.75; 
+                    if (actualLength >= 4) lenMod = 0.60; 
 
-                // 卡片密度縮放機制 (魔王模式 8 字時，整體自動縮小)
-                const densityScale = n >= 8 ? 0.75 : (n >= 6 ? 0.90 : 1);
+                    const densityScale = n >= 8 ? 0.70 : (n >= 6 ? 0.85 : 1); 
 
-                if (i === 0 && n > 3) {
-                    angle = 0;
-                    radius = 0;
-                    // 魔王模式下，中心字不要太大以免吃掉外圈空間
-                    const maxCenter = n >= 8 ? 1.3 : 1.5;
-                    scale = (maxCenter + Math.random() * 0.4) * lenMod * densityScale; 
-                } else {
-                    const ringCount = n > 3 ? n - 1 : n;
-                    const ringIndex = n > 3 ? i - 1 : i;
+                    if (i === 0 && n > 3) {
+                        angle = 0;
+                        radius = 0;
+                        const maxCenter = n >= 8 ? 1.2 : 1.4;
+                        scale = (maxCenter + Math.random() * 0.3) * lenMod * densityScale; 
+                        rotation = actualLength >= 2 ? (Math.random() * 30 - 15) : (Math.random() * 360);
+                    } else {
+                        const ringCount = n > 3 ? n - 1 : n;
+                        const ringIndex = n > 3 ? i - 1 : i;
+                        const baseAngle = (ringIndex / ringCount) * Math.PI * 2;
+                        const jitter = (Math.random() * 0.3 - 0.15); 
+                        angle = baseAngle + jitter;
+                        
+                        const maxR = shape === 'circle' ? 35 : 39;
+                        const minR = n >= 8 ? 26 : 20; 
+                        radius = minR + Math.random() * (maxR - minR); 
+                        
+                        let rawScale = (0.85 + Math.random() * 0.4) * lenMod * densityScale;
+                        scale = Math.max(0.50, rawScale); 
+
+                        if (actualLength >= 2) {
+                            let tangDeg = (angle * 180 / Math.PI) + 90; 
+                            rotation = tangDeg + (Math.random() * 40 - 20); 
+                            if (rotation > 90 && rotation < 270) {
+                                rotation += 180;
+                            }
+                        } else {
+                            rotation = Math.random() * 360; 
+                        }
+                    }
+
+                    const x = 50 + radius * Math.cos(angle);
+                    const y = 50 + radius * Math.sin(angle);
                     
-                    // 字數多時，減少角度與半徑的隨機偏移，強迫它們排好隊
-                    const jitter = n >= 8 ? (Math.random() * 0.2 - 0.1) : (Math.random() * 0.6 - 0.3);
-                    angle = (ringIndex / ringCount) * Math.PI * 2 + jitter;
-                    
-                    const maxR = shape === 'circle' ? 34 : 36;
-                    // 魔王模式下讓外圈的字盡量貼齊外圍，不往內擠
-                    const radiusJitter = n >= 8 ? (Math.random() * 4) : (Math.random() * 12);
-                    radius = maxR - radiusJitter; 
-                    
-                    // 提升最小縮放比例，防止字變得像螞蟻一樣小
-                    let rawScale = (0.85 + Math.random() * 0.6) * lenMod * densityScale;
-                    scale = Math.max(0.55, rawScale); // 絕對防線：縮放不得低於 0.55 倍
-                }
+                    layouts.push({ word, x, y, rotation, scale, color: cardColors[i], zIndex: Math.floor(Math.random() * 10) });
+                });
+                return layouts;
+            }, [words, shape, reshuffleKey]); // 當洗牌鍵更新時，才重新計算
 
-                const x = 50 + radius * Math.cos(angle);
-                const y = 50 + radius * Math.sin(angle);
-                const rotation = Math.random() * 360;
+            // 滑鼠/觸控拖曳事件處理 (原生 DOM 操作，極致順暢且不觸發 React 重新渲染)
+            const handlePointerDown = (e) => {
+                // 忽略非左鍵點擊
+                if (e.button !== 0 && e.pointerType === 'mouse') return;
                 
-                const color = colorMode === 'fixed' 
-                    ? wordColorMap[word] 
-                    : cardColors[i];
+                const el = e.currentTarget;
+                el.setPointerCapture(e.pointerId);
+                
+                const startX = e.clientX;
+                const startY = e.clientY;
+                
+                const currentLeft = parseFloat(el.style.left);
+                const currentTop = parseFloat(el.style.top);
+                const originalZ = el.style.zIndex;
+                
+                const container = el.parentElement;
+                const rect = container.getBoundingClientRect();
+                
+                // 拖曳時將該字拉到最上層
+                el.style.zIndex = 100;
+                
+                const onPointerMove = (moveEvent) => {
+                    const dx = moveEvent.clientX - startX;
+                    const dy = moveEvent.clientY - startY;
+                    
+                    // 將 px 轉換回 %
+                    const newLeft = currentLeft + (dx / rect.width) * 100;
+                    const newTop = currentTop + (dy / rect.height) * 100;
+                    
+                    el.style.left = `${newLeft}%`;
+                    el.style.top = `${newTop}%`;
+                };
+                
+                const onPointerUp = (upEvent) => {
+                    el.releasePointerCapture(upEvent.pointerId);
+                    el.removeEventListener('pointermove', onPointerMove);
+                    el.removeEventListener('pointerup', onPointerUp);
+                    el.style.zIndex = originalZ; // 放開後恢復原來圖層
+                };
+                
+                el.addEventListener('pointermove', onPointerMove);
+                el.addEventListener('pointerup', onPointerUp);
+            };
 
-                return (
-                    <div 
-                        key={`${word}-${i}`} 
-                        className="word-item"
-                        style={{
-                            left: `${x}%`,
-                            top: `${y}%`,
-                            transform: `translate(-50%, -50%) rotate(${rotation}deg) scale(${scale})`,
-                            color: color,
-                            fontSize: `${baseFontSize}px`,
-                            zIndex: Math.floor(Math.random() * 10) // 隨機圖層高度，重疊時更自然
-                        }}
-                    >
-                        {word}
-                    </div>
-                );
-            });
-
-            let shapeClass = 'rounded-2xl'; // 圓角方形預設值
+            let shapeClass = 'rounded-2xl'; 
             if (shape === 'circle') shapeClass = 'rounded-full';
             if (shape === 'square') shapeClass = 'rounded-none';
 
             return (
                 <div className="card-container p-2 w-full mx-auto">
                     <div className={`card-base ${shapeClass}`}>
-                        {renderWords}
+                        {initialLayout.map((item, i) => {
+                            const color = colorMode === 'fixed' 
+                                ? wordColorMap[item.word] 
+                                : item.color;
+
+                            return (
+                                <div 
+                                    key={`${item.word}-${i}`} 
+                                    className="word-item"
+                                    onPointerDown={handlePointerDown}
+                                    style={{
+                                        left: `${item.x}%`,
+                                        top: `${item.y}%`,
+                                        transform: `translate(-50%, -50%) rotate(${item.rotation}deg) scale(${item.scale})`,
+                                        color: color,
+                                        fontSize: `${baseFontSize}px`,
+                                        zIndex: item.zIndex
+                                    }}
+                                    title="拖曳我來微調位置！"
+                                >
+                                    {item.word}
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
             );
         }
 
-        // 解析輸入字串，透過空白鍵或逗號切分出字與詞
         const parseInputToWords = (text) => {
             return Array.from(new Set(text.split(/[\s,、，。;；\/]+/).filter(w => w.trim().length > 0)));
         };
 
         function App() {
-            // 控制載入內容是「生字」還是「生詞」
             const [inputType, setInputType] = React.useState("words"); 
-            
             const [inputText, setInputText] = React.useState("");
             const [wordsPerCard, setWordsPerCard] = React.useState(3);
             const [cards, setCards] = React.useState([]);
             const [error, setError] = React.useState("");
             const [cardShape, setCardShape] = React.useState("circle");
-            const [cardSize, setCardSize] = React.useState("letter6"); // 預設使用 Letter 6 張
+            const [cardSize, setCardSize] = React.useState("letter6"); 
             
             const [colorMode, setColorMode] = React.useState("fixed"); 
             const [wordColorMap, setWordColorMap] = React.useState({});
 
             const [toast, setToast] = React.useState("");
+            const [reshuffleKey, setReshuffleKey] = React.useState(0); // 新增：專門控制洗牌的鑰匙
 
             const showToast = (message) => {
                 setToast(message);
@@ -321,7 +397,7 @@
 
             const switchMode = (mode) => {
                 setInputType(mode);
-                setInputText(""); // 切換模式時自動清空，避免混淆
+                setInputText(""); 
                 setCards([]);
                 setError("");
                 showToast(mode === 'chars' ? "🅰️ 已切換為【單個生字】模式" : "📚 已切換為【完整生詞】模式");
@@ -333,15 +409,13 @@
                     let newWords = [];
                     
                     if (inputType === 'chars') {
-                        // 單字模式：把字串拆成一個個獨立的字
                         newWords = lesson.chars.replace(/\s/g, '').split('');
                     } else {
-                        // 生詞模式：照著預設的空白分隔去拆分
                         newWords = lesson.words.split(' ');
                     }
                     
                     const combined = Array.from(new Set([...prevWords, ...newWords]));
-                    return combined.join(' '); // 統一用空白鍵組合，方便老師在編輯區查看修改
+                    return combined.join(' '); 
                 });
                 showToast(`➕ 已加入「${lesson.name}」的${inputType === 'chars' ? '生字' : '生詞'}`);
             };
@@ -382,11 +456,12 @@
                 
                 const finalCards = generated.map(card => card.sort(() => 0.5 - Math.random()));
                 setCards(finalCards.sort(() => 0.5 - Math.random()));
+                setReshuffleKey(prev => prev + 1); // 產生時重置一次排版
             };
 
             const handleReshuffle = () => {
                 if(cards.length > 0) {
-                    setCards([...cards]);
+                    setReshuffleKey(prev => prev + 1); // 觸發排版重新計算
                     showToast("🔀 已重新隨機排列大小與位置！");
                 }
             };
@@ -401,10 +476,10 @@
 
             if (cardSize === 'sm') {
                 gridClass += "grid-cols-3 md:grid-cols-4 lg:grid-cols-5 print:grid-cols-4";
+            } else if (cardSize === 'letter12') {
+                gridClass += "grid-cols-3 md:grid-cols-4 lg:grid-cols-5 print:grid-cols-3 size-letter12";
             } else if (cardSize === 'letter6') {
                 gridClass += "grid-cols-2 md:grid-cols-3 print:grid-cols-2 size-letter6";
-            } else if (cardSize === 'lg') {
-                gridClass += "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 print:grid-cols-2 max-w-4xl mx-auto";
             } else {
                 gridClass += "grid-cols-2 md:grid-cols-3 lg:grid-cols-4 print:grid-cols-3";
             }
@@ -427,7 +502,7 @@
                                 <i className="ph-fill ph-cards text-4xl"></i>
                                 <div>
                                     <h1 className="text-2xl font-bold tracking-wide">生字/生詞 Spot It! 生成器</h1>
-                                    <p className="text-emerald-100 text-sm mt-1">單字模式、完整生詞自由切換，完美支援長詞彙！</p>
+                                    <p className="text-emerald-100 text-sm mt-1">單字模式、完整生詞自由切換，完美支援手動拖曳微調！</p>
                                 </div>
                             </div>
                         </div>
@@ -441,7 +516,6 @@
                                     1. 選擇模式與加入課文
                                 </h2>
                                 
-                                {/* 🎯 超明確的模式切換開關 */}
                                 <div className="flex gap-2 mb-4">
                                     <button 
                                         onClick={() => switchMode('chars')}
@@ -527,8 +601,8 @@
                                             <div className="flex bg-gray-100 rounded-lg p-1">
                                                 <button onClick={() => setCardSize('sm')} className={`flex-1 text-xs py-1.5 rounded-md ${cardSize === 'sm' ? 'bg-white shadow text-emerald-600 font-bold' : 'text-gray-500 hover:text-gray-700'}`}>小</button>
                                                 <button onClick={() => setCardSize('md')} className={`flex-1 text-xs py-1.5 rounded-md ${cardSize === 'md' ? 'bg-white shadow text-emerald-600 font-bold' : 'text-gray-500 hover:text-gray-700'}`}>中</button>
+                                                <button onClick={() => setCardSize('letter12')} className={`flex-1 text-[11px] py-1.5 rounded-md ${cardSize === 'letter12' ? 'bg-white shadow text-emerald-600 font-bold' : 'text-gray-500 hover:text-gray-700'}`}>Letter(12)</button>
                                                 <button onClick={() => setCardSize('letter6')} className={`flex-1 text-[11px] py-1.5 rounded-md ${cardSize === 'letter6' ? 'bg-white shadow text-emerald-600 font-bold' : 'text-gray-500 hover:text-gray-700'}`}>Letter(6)</button>
-                                                <button onClick={() => setCardSize('lg')} className={`flex-1 text-[11px] py-1.5 rounded-md ${cardSize === 'lg' ? 'bg-white shadow text-emerald-600 font-bold' : 'text-gray-500 hover:text-gray-700'}`}>特大(4)</button>
                                             </div>
                                         </div>
                                     </div>
@@ -550,8 +624,9 @@
                             ) : (
                                 <div>
                                     <div className="mb-6 flex flex-col sm:flex-row justify-between items-center gap-4 no-print bg-white p-4 rounded-xl shadow-sm border border-emerald-50">
-                                        <div className="text-sm font-bold text-emerald-700">
-                                            {colorMode === 'fixed' ? '✨ 【固定顏色】：同一個字詞顏色皆相同，相近色機率已降至最低' : '✨ 【隨機顏色】：單一卡片顏色保證絕對互斥，100% 不相近'}
+                                        <div className="text-sm font-bold text-emerald-700 flex items-center gap-2">
+                                            <i className="ph-fill ph-hand-pointing text-xl"></i>
+                                            ✨ 提示：現在您可以直接用滑鼠或手指「拖曳」卡片上的字來微調位置喔！
                                         </div>
                                         <div className="flex gap-2">
                                             <button onClick={handleReshuffle} className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold py-2 px-4 rounded-lg border border-indigo-200 text-sm flex items-center gap-1">
@@ -571,6 +646,7 @@
                                                 size={cardSize}
                                                 colorMode={colorMode}
                                                 wordColorMap={wordColorMap}
+                                                reshuffleKey={reshuffleKey}
                                             />
                                         ))}
                                     </div>
