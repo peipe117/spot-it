@@ -181,20 +181,202 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        const lessons = [
-            { id: 1, name: "第一課", chars: "新同學自己年跟比", words: "比較 大家 方友朋 高興 跟 歡迎 今年 介紹 自己 看書 認識 現在 新 學 游泳 最 中文 張莉" },
-            { id: 2, name: "第二課", chars: "外公以前工作班後", words: "幫 電腦公司 工作 上班 外公 外婆 一樣 以前 銀行 醫生 做生意" },
-            { id: 3, name: "第三課", chars: "去近買東西魚還可", words: "冰淇淋 超級市場 東西 附近 可以 米 買 牛肉 巧克力 青菜 糖果 要 魚" },
-            { id: 4, name: "第四課", chars: "出先週末晚蛋飯現點", words: "出去 蛋炒飯 餓 漢堡 快點 了 麵 薯條 湯 晚餐 晚飯 先 已經 玉米 再 週末" },
-            { id: 5, name: "第五課", chars: "黃綠色時候花子紅白", words: "變 不錯 白色 春天 草 紅色 黃 還是 花 了 綠色 漂亮 秋天 時候 樹葉 天氣 院子 顏色 舒服" },
-            { id: 6, name: "第六課", chars: "華說對星期會每給如果", words: "拜年 放鞭炮 給 紅包 會 每 那天 年糕 如果 說 台灣 貼春聯 新年 下 星期 華人 農曆" },
-            { id: 7, name: "第七課", chars: "起累早洗昨過別忘用臉", words: "別 肥皂 乾淨 該 過 趕快 來不及 累 起床 刷牙 睡覺 晚上 忘 洗 洗澡 洗臉 用 知道 昨天" },
-            { id: 8, name: "第八課", chars: "送隻狗帶散步貓非愛", words: "不見了 寵物 帶 非常 狗 可愛 貓 去年 送給 上個月 牠們 兔子 餵 養 隻 散步" },
-            { id: 9, name: "第九課", chars: "南北方裡校門口因為所", words: "北方 東方 方向 告訴 教室 南方 所以 它 校門口 西方 因為 足球場 指北針 指南針 還是" },
-            { id: 10, name: "第十課", chars: "本著退休次旅行法國", words: "阿姨 本來 法國 舅舅 看 旅行 紐約 台北 台南 退休 一次 住在 暑假" },
-            { id: 11, name: "第十一課", chars: "動物園老希望但胖真長", words: "不但 脖子 長頸鹿 大象 動物園 猴子 看到 老虎 胖 企鵝 玩 熊貓 希望 這一次 長 真" },
-            { id: 12, name: "第十二課", chars: "久話高課寫沒題定意思", words: "啊 過來 很久 好好 看起來 沒問題 上課 說話 瘦 網路 寫 信 有意思 一定 影像 長高" }
-        ];
+        // 🌐 多國語言字典 (i18n)
+        const i18n = {
+            'zh-TW': {
+                title: "生字/生詞 Spot It! 生成器",
+                subtitle: "支援檔案匯入與內建範例，輕鬆打造個人專屬牌卡！",
+                step1: "1. 編輯與匯入字庫",
+                clearBtn: "清空",
+                builtInBtn: "內建範例",
+                importBtn: "匯入檔案",
+                importTipTitle: "匯入格式說明：",
+                importTipDesc: "檔案請存成 <b>.txt</b> 或 <b>.csv</b>。<br/>內容請將生字或生詞用「<b>空白鍵</b>」、「<b>逗號</b>」或「<b>換行</b>」隔開即可。",
+                placeholder: "可手動輸入、貼上字詞 (用空白或換行分隔)；或點擊上方按鈕匯入內容...",
+                itemCount: "項目數量：",
+                step2: "2. 設定與排版",
+                difficulty: "每張字數 (難度)",
+                diff3: "簡單：3個 (需 7 個項目)",
+                diff4: "適中：4個 (需 13 個項目)",
+                diff6: "挑戰：6個 (需 31 個項目)",
+                diff8: "魔王：8個 (需 57 個項目)",
+                colorLabel: "字體顏色",
+                colorFixed: "固定 (易認字)",
+                colorRandom: "隨機 (挑戰高)",
+                shapeLabel: "卡片形狀",
+                shapeCircle: "圓形",
+                shapeSquare: "方形",
+                sizeLabel: "列印大小",
+                sizeLg: "大",
+                sizeMd: "中",
+                sizeSm: "小",
+                generateBtn: "產生卡片",
+                emptyState: "輸入字庫或匯入檔案後即可開始！",
+                dragTip: "✨ 提示：現在您可以直接用滑鼠或手指「拖曳」卡片上的字來微調位置喔！",
+                reshuffleBtn: "洗牌重排",
+                printBtn: "列印卡片",
+                footer: "Powered by Gemini | Sophia老師的AI練習本",
+                modalTitle: "內建範例字庫",
+                modalSubtitle: "《學華語向前走》第二冊",
+                modeChar: "🅰️ 單個生字",
+                modeWord: "📚 完整生詞",
+                cancelBtn: "取消",
+                toastChar: "🅰️ 已切換為【單個生字】模式",
+                toastWord: "📚 已切換為【完整生詞】模式",
+                toastAdd: "➕ 已加入「{0}」的{1}",
+                toastTypeChar: "生字",
+                toastTypeWord: "生詞",
+                toastClear: "🗑️ 已清空",
+                toastImport: "📄 成功匯入檔案「{0}」！",
+                toastReshuffle: "🔀 已重新隨機排列大小與位置！",
+                errNeedMore: "目前有 {0} 個字/詞。選擇「每張 {1} 個」，至少需要 {2} 個項目喔！",
+                dragHover: "拖曳我來微調位置！"
+            },
+            'zh-CN': {
+                title: "生字/生词 Spot It! 生成器",
+                subtitle: "支持文件导入与内置示例，轻松打造个人专属牌卡！",
+                step1: "1. 编辑与导入字库",
+                clearBtn: "清空",
+                builtInBtn: "内置示例",
+                importBtn: "导入文件",
+                importTipTitle: "导入格式说明：",
+                importTipDesc: "文件请存为 <b>.txt</b> 或 <b>.csv</b>。<br/>内容请将生字或生词用“<b>空格</b>”、“<b>逗号</b>”或“<b>换行</b>”隔开即可。",
+                placeholder: "可手动输入、贴上字词 (用空格或换行分隔)；或点击上方按钮导入内容...",
+                itemCount: "项目数量：",
+                step2: "2. 设置与排版",
+                difficulty: "每张字数 (难度)",
+                diff3: "简单：3个 (需 7 个项目)",
+                diff4: "适中：4个 (需 13 个项目)",
+                diff6: "挑战：6个 (需 31 个项目)",
+                diff8: "魔王：8个 (需 57 个项目)",
+                colorLabel: "字体颜色",
+                colorFixed: "固定 (易认字)",
+                colorRandom: "随机 (挑战高)",
+                shapeLabel: "卡片形状",
+                shapeCircle: "圆形",
+                shapeSquare: "方形",
+                sizeLabel: "打印大小",
+                sizeLg: "大",
+                sizeMd: "中",
+                sizeSm: "小",
+                generateBtn: "生成卡片",
+                emptyState: "输入字库或导入文件后即可开始！",
+                dragTip: "✨ 提示：现在您可以直接用鼠标或手指“拖曳”卡片上的字来微调位置喔！",
+                reshuffleBtn: "洗牌重排",
+                printBtn: "打印卡片",
+                footer: "Powered by Gemini | Sophia老师的AI练习本",
+                modalTitle: "内置示例字库",
+                modalSubtitle: "《学华语向前走》第二册",
+                modeChar: "🅰️ 单个生字",
+                modeWord: "📚 完整生词",
+                cancelBtn: "取消",
+                toastChar: "🅰️ 已切换为【单个生字】模式",
+                toastWord: "📚 已切换为【完整生词】模式",
+                toastAdd: "➕ 已加入“{0}”的{1}",
+                toastTypeChar: "生字",
+                toastTypeWord: "生词",
+                toastClear: "🗑️ 已清空",
+                toastImport: "📄 成功导入文件“{0}”！",
+                toastReshuffle: "🔀 已重新随机排列大小与位置！",
+                errNeedMore: "目前有 {0} 个字/词。选择“每张 {1} 个”，至少需要 {2} 个项目喔！",
+                dragHover: "拖拽我来微调位置！"
+            },
+            'en': {
+                title: "Vocab Spot It! Generator",
+                subtitle: "Support file import & examples. Create custom cards easily!",
+                step1: "1. Edit Vocabulary",
+                clearBtn: "Clear",
+                builtInBtn: "Examples",
+                importBtn: "Import",
+                importTipTitle: "Import Format:",
+                importTipDesc: "Save file as <b>.txt</b> or <b>.csv</b>.<br/>Separate words using <b>spaces</b>, <b>commas</b>, or <b>line breaks</b>.",
+                placeholder: "Type or paste words here (separated by space/line break), or click buttons to import...",
+                itemCount: "Item count:",
+                step2: "2. Settings & Layout",
+                difficulty: "Words per card (Difficulty)",
+                diff3: "Easy: 3 (Needs 7 items)",
+                diff4: "Normal: 4 (Needs 13 items)",
+                diff6: "Hard: 6 (Needs 31 items)",
+                diff8: "Expert: 8 (Needs 57 items)",
+                colorLabel: "Text Color",
+                colorFixed: "Fixed (Easier)",
+                colorRandom: "Random (Harder)",
+                shapeLabel: "Card Shape",
+                shapeCircle: "Circle",
+                shapeSquare: "Square",
+                sizeLabel: "Print Size",
+                sizeLg: "Large",
+                sizeMd: "Medium",
+                sizeSm: "Small",
+                generateBtn: "Generate Cards",
+                emptyState: "Input vocabulary or import file to start!",
+                dragTip: "✨ Tip: You can drag words with your mouse or finger to adjust their positions!",
+                reshuffleBtn: "Reshuffle",
+                printBtn: "Print Cards",
+                footer: "Powered by Gemini | Teacher Sophia's AI Workbook",
+                modalTitle: "Built-in Examples",
+                modalSubtitle: "Let's Learn Chinese Vol. 2",
+                modeChar: "🅰️ Characters",
+                modeWord: "📚 Vocabulary",
+                cancelBtn: "Cancel",
+                toastChar: "🅰️ Switched to [Characters] mode",
+                toastWord: "📚 Switched to [Vocabulary] mode",
+                toastAdd: "➕ Added {1} from {0}",
+                toastTypeChar: "Characters",
+                toastTypeWord: "Vocabulary",
+                toastClear: "🗑️ Cleared",
+                toastImport: "📄 Successfully imported '{0}'!",
+                toastReshuffle: "🔀 Reshuffled sizes and positions!",
+                errNeedMore: "Currently {0} items. For '{1} per card', you need at least {2} items!",
+                dragHover: "Drag me to adjust position!"
+            }
+        };
+
+        // 📚 多語系課程資料庫
+        const lessonsData = {
+            'zh-TW': [
+                { id: 1, name: "第一課", chars: "新同學自己年跟比", words: "比較 大家 方友朋 高興 跟 歡迎 今年 介紹 自己 看書 認識 現在 新 學 游泳 最 中文 張莉" },
+                { id: 2, name: "第二課", chars: "外公以前工作班後", words: "幫 電腦公司 工作 上班 外公 外婆 一樣 以前 銀行 醫生 做生意" },
+                { id: 3, name: "第三課", chars: "去近買東西魚還可", words: "冰淇淋 超級市場 東西 附近 可以 米 買 牛肉 巧克力 青菜 糖果 要 魚" },
+                { id: 4, name: "第四課", chars: "出先週末晚蛋飯現點", words: "出去 蛋炒飯 餓 漢堡 快點 了 麵 薯條 湯 晚餐 晚飯 先 已經 玉米 再 週末" },
+                { id: 5, name: "第五課", chars: "黃綠色時候花子紅白", words: "變 不錯 白色 春天 草 紅色 黃 還是 花 了 綠色 漂亮 秋天 時候 樹葉 天氣 院子 顏色 舒服" },
+                { id: 6, name: "第六課", chars: "華說對星期會每給如果", words: "拜年 放鞭炮 給 紅包 會 每 那天 年糕 如果 說 台灣 貼春聯 新年 下 星期 華人 農曆" },
+                { id: 7, name: "第七課", chars: "起累早洗昨過別忘用臉", words: "別 肥皂 乾淨 該 過 趕快 來不及 累 起床 刷牙 睡覺 晚上 忘 洗 洗澡 洗臉 用 知道 昨天" },
+                { id: 8, name: "第八課", chars: "送隻狗帶散步貓非愛", words: "不見了 寵物 帶 非常 狗 可愛 貓 去年 送給 上個月 牠們 兔子 餵 養 隻 散步" },
+                { id: 9, name: "第九課", chars: "南北方裡校門口因為所", words: "北方 東方 方向 告訴 教室 南方 所以 它 校門口 西方 因為 足球場 指北針 指南針 還是" },
+                { id: 10, name: "第十課", chars: "本著退休次旅行法國", words: "阿姨 本來 法國 舅舅 看 旅行 紐約 台北 台南 退休 一次 住在 暑假" },
+                { id: 11, name: "第十一課", chars: "動物園老希望但胖真長", words: "不但 脖子 長頸鹿 大象 動物園 猴子 看到 老虎 胖 企鵝 玩 熊貓 希望 這一次 長 真" },
+                { id: 12, name: "第十二課", chars: "久話高課寫沒題定意思", words: "啊 過來 很久 好好 看起來 沒問題 上課 說話 瘦 網路 寫 信 有意思 一定 影像 長高" }
+            ],
+            'zh-CN': [
+                { id: 1, name: "第一课", chars: "新同学自己年跟比", words: "比较 大家 方友朋 高兴 跟 欢迎 今年 介绍 自己 看书 认识 现在 新 学 游泳 最 中文 张莉" },
+                { id: 2, name: "第二课", chars: "外公以前工作班后", words: "帮 电脑公司 工作 上班 外公 外婆 一样 以前 银行 医生 做生意" },
+                { id: 3, name: "第三课", chars: "去近买东西鱼还可", words: "冰淇淋 超级市场 东西 附近 可以 米 买 牛肉 巧克力 青菜 糖果 要 鱼" },
+                { id: 4, name: "第四课", chars: "出先周末晚蛋饭现点", words: "出去 蛋炒饭 饿 汉堡 快点 了 面 薯条 汤 晚餐 晚饭 先 已经 玉米 再 周末" },
+                { id: 5, name: "第五课", chars: "黄绿色时候花子红白", words: "变 不错 白色 春天 草 红色 黄 还是 花 了 绿色 漂亮 秋天 时候 树叶 天气 院子 颜色 舒服" },
+                { id: 6, name: "第六课", chars: "华说对星期会每给如果", words: "拜年 放鞭炮 给 红包 会 每 那天 年糕 如果 说 台湾 贴春联 新年 下 星期 华人 农历" },
+                { id: 7, name: "第七课", chars: "起累早洗昨过别忘用脸", words: "别 肥皂 干净 该 过 赶快 来不及 累 起床 刷牙 睡觉 晚上 忘 洗 洗澡 洗脸 用 知道 昨天" },
+                { id: 8, name: "第八课", chars: "送只狗带散步猫非爱", words: "不见了 宠物 带 非常 狗 可爱 猫 去年 送给 上个月 牠们 兔子 喂 养 只 散步" },
+                { id: 9, name: "第九课", chars: "南北方里校门口因为所", words: "北方 东方 方向 告诉 教室 南方 所以 它 校门口 西方 因为 足球场 指北针 指南针 还是" },
+                { id: 10, name: "第十课", chars: "本着退休次旅行法国", words: "阿姨 本来 法国 舅舅 看 旅行 纽约 台北 台南 退休 一次 住在 暑假" },
+                { id: 11, name: "第十一课", chars: "动物园老希望但胖真长", words: "不但 脖子 长颈鹿 大象 动物园 猴子 看到 老虎 胖 企鹅 玩 熊猫 希望 这一次 长 真" },
+                { id: 12, name: "第十二课", chars: "久话高课写没题定意思", words: "啊 过来 很久 好好 看起来 没问题 上课 说话 瘦 网络 写 信 有意思 一定 影像 长高" }
+            ],
+            'en': [
+                { id: 1, name: "Lesson 1", chars: "新同學自己年跟比", words: "比較 大家 方友朋 高興 跟 歡迎 今年 介紹 自己 看書 認識 現在 新 學 游泳 最 中文 張莉" },
+                { id: 2, name: "Lesson 2", chars: "外公以前工作班後", words: "幫 電腦公司 工作 上班 外公 外婆 一樣 以前 銀行 醫生 做生意" },
+                { id: 3, name: "Lesson 3", chars: "去近買東西魚還可", words: "冰淇淋 超級市場 東西 附近 可以 米 買 牛肉 巧克力 青菜 糖果 要 魚" },
+                { id: 4, name: "Lesson 4", chars: "出先週末晚蛋飯現點", words: "出去 蛋炒飯 餓 漢堡 快點 了 麵 薯條 湯 晚餐 晚飯 先 已經 玉米 再 週末" },
+                { id: 5, name: "Lesson 5", chars: "黃綠色時候花子紅白", words: "變 不錯 白色 春天 草 紅色 黃 還是 花 了 綠色 漂亮 秋天 時候 樹葉 天氣 院子 顏色 舒服" },
+                { id: 6, name: "Lesson 6", chars: "華說對星期會每給如果", words: "拜年 放鞭炮 給 紅包 會 每 那天 年糕 如果 說 台灣 貼春聯 新年 下 星期 華人 農曆" },
+                { id: 7, name: "Lesson 7", chars: "起累早洗昨過別忘用臉", words: "別 肥皂 乾淨 該 過 趕快 來不及 累 起床 刷牙 睡覺 晚上 忘 洗 洗澡 洗臉 用 知道 昨天" },
+                { id: 8, name: "Lesson 8", chars: "送隻狗帶散步貓非愛", words: "不見了 寵物 帶 非常 狗 可愛 貓 去年 送給 上個月 牠們 兔子 餵 養 隻 散步" },
+                { id: 9, name: "Lesson 9", chars: "南北方裡校門口因為所", words: "北方 東方 方向 告訴 教室 南方 所以 它 校門口 西方 因為 足球場 指北針 指南針 還是" },
+                { id: 10, name: "Lesson 10", chars: "本著退休次旅行法國", words: "阿姨 本來 法國 舅舅 看 旅行 紐約 台北 台南 退休 一次 住在 暑假" },
+                { id: 11, name: "Lesson 11", chars: "動物園老希望但胖真長", words: "不但 脖子 長頸鹿 大象 動物園 猴子 看到 老虎 胖 企鵝 玩 熊貓 希望 這一次 長 真" },
+                { id: 12, name: "Lesson 12", chars: "久話高課寫沒題定意思", words: "啊 過來 很久 好好 看起來 沒問題 上課 說話 瘦 網路 寫 信 有意思 一定 影像 長高" }
+            ]
+        };
 
         function generateDobbleCards(symbols, p) {
             let n = p + 1;
@@ -237,7 +419,7 @@
             return colors;
         };
 
-        function Card({ words, shape, size, colorMode, wordColorMap, reshuffleKey }) {
+        function Card({ words, shape, size, colorMode, wordColorMap, reshuffleKey, dragTipText }) {
             const n = words.length;
             
             const fontSizeMap = {
@@ -370,7 +552,7 @@
                                         fontSize: `${baseFontSize}px`,
                                         zIndex: item.zIndex
                                     }}
-                                    title="拖曳我來微調位置！"
+                                    title={dragTipText}
                                 >
                                     {item.word}
                                 </div>
@@ -386,6 +568,10 @@
         };
 
         function App() {
+            const [lang, setLang] = React.useState("zh-TW"); // 🌐 語言狀態
+            const t = (key) => i18n[lang][key] || key; // 翻譯函式
+            const formatStr = (str, ...args) => args.reduce((s, a, i) => s.replace(`{${i}}`, a), str);
+
             const [inputType, setInputType] = React.useState("words"); 
             const [inputText, setInputText] = React.useState("");
             const [wordsPerCard, setWordsPerCard] = React.useState(3);
@@ -410,6 +596,8 @@
 
             const switchMode = (mode) => {
                 setInputType(mode);
+                // 為了不打擾使用者，模式切換不強制清空輸入框，只給予提示
+                showToast(mode === 'chars' ? t('toastChar') : t('toastWord'));
             };
 
             const handleLessonAdd = (lesson) => {
@@ -426,7 +614,8 @@
                     const combined = Array.from(new Set([...prevWords, ...newWords]));
                     return combined.join(' '); 
                 });
-                showToast(`➕ 已加入「${lesson.name}」的${inputType === 'chars' ? '生字' : '生詞'}`);
+                const typeStr = inputType === 'chars' ? t('toastTypeChar') : t('toastTypeWord');
+                showToast(formatStr(t('toastAdd'), lesson.name, typeStr));
                 setShowModal(false); 
             };
 
@@ -443,7 +632,7 @@
                         const combined = Array.from(new Set([...prevWords, ...newWords]));
                         return combined.join(' ');
                     });
-                    showToast(`📄 成功匯入檔案「${file.name}」！`);
+                    showToast(formatStr(t('toastImport'), file.name));
                 };
                 reader.readAsText(file);
                 e.target.value = null; 
@@ -453,7 +642,7 @@
                 setInputText("");
                 setCards([]);
                 setError("");
-                showToast("🗑️ 已清空");
+                showToast(t('toastClear'));
             };
 
             const requiredWordsMap = { 3: 7, 4: 13, 6: 31, 8: 57 };
@@ -465,7 +654,7 @@
                 const requiredCount = requiredWordsMap[wordsPerCard];
                 
                 if (uniqueWords.length < requiredCount) {
-                    setError(`目前有 ${uniqueWords.length} 個字/詞。選擇「每張 ${wordsPerCard} 個」，至少需要 ${requiredCount} 個項目喔！`);
+                    setError(formatStr(t('errNeedMore'), uniqueWords.length, wordsPerCard, requiredCount));
                     setCards([]);
                     return;
                 }
@@ -491,7 +680,7 @@
             const handleReshuffle = () => {
                 if(cards.length > 0) {
                     setReshuffleKey(prev => prev + 1); 
-                    showToast("🔀 已重新隨機排列大小與位置！");
+                    showToast(t('toastReshuffle'));
                 }
             };
 
@@ -515,6 +704,8 @@
                 gridClass += " shape-square-grid";
             }
 
+            const currentLessons = lessonsData[lang] || lessonsData['zh-TW'];
+
             return (
                 <div className="min-h-screen pb-6 flex flex-col relative">
                     {toast && (
@@ -529,8 +720,8 @@
                                 <div className="bg-emerald-500 p-4 flex justify-between items-center text-white">
                                     <h3 className="font-bold text-lg flex items-center gap-2">
                                         <i className="ph-bold ph-books"></i> 
-                                        內建範例字庫 
-                                        <span className="text-sm font-normal text-emerald-100 ml-1 tracking-wider">《學華語向前走》第二冊</span>
+                                        {t('modalTitle')} 
+                                        <span className="text-sm font-normal text-emerald-100 ml-1 tracking-wider">{t('modalSubtitle')}</span>
                                     </h3>
                                     <button onClick={() => setShowModal(false)} className="hover:text-emerald-200 transition-colors">
                                         <i className="ph-bold ph-x text-xl"></i>
@@ -542,17 +733,17 @@
                                             onClick={() => switchMode('chars')}
                                             className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all border ${inputType === 'chars' ? 'bg-emerald-500 text-white border-emerald-600 shadow-md' : 'bg-white text-emerald-600 border-emerald-200 hover:bg-emerald-50'}`}
                                         >
-                                            🅰️ 單個生字
+                                            {t('modeChar')}
                                         </button>
                                         <button 
                                             onClick={() => switchMode('words')}
                                             className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all border ${inputType === 'words' ? 'bg-emerald-500 text-white border-emerald-600 shadow-md' : 'bg-white text-emerald-600 border-emerald-200 hover:bg-emerald-50'}`}
                                         >
-                                            📚 完整生詞
+                                            {t('modeWord')}
                                         </button>
                                     </div>
                                     <div className="grid grid-cols-3 gap-3">
-                                        {lessons.map(l => (
+                                        {currentLessons.map(l => (
                                             <button 
                                                 key={l.id}
                                                 onClick={() => handleLessonAdd(l)}
@@ -564,20 +755,26 @@
                                     </div>
                                 </div>
                                 <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-end">
-                                    <button onClick={() => setShowModal(false)} className="px-5 py-2 bg-gray-200 text-gray-700 rounded-lg font-bold hover:bg-gray-300 transition-colors text-sm">取消</button>
+                                    <button onClick={() => setShowModal(false)} className="px-5 py-2 bg-gray-200 text-gray-700 rounded-lg font-bold hover:bg-gray-300 transition-colors text-sm">{t('cancelBtn')}</button>
                                 </div>
                             </div>
                         </div>
                     )}
 
                     <div className="bg-emerald-600 text-white p-6 shadow-md no-print relative z-10">
-                        <div className="max-w-6xl mx-auto flex justify-between items-center">
+                        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                             <div className="flex items-center gap-3">
                                 <i className="ph-fill ph-cards text-4xl"></i>
                                 <div>
-                                    <h1 className="text-2xl font-bold tracking-wide">生字/生詞 Spot It! 生成器</h1>
-                                    <p className="text-emerald-100 text-sm mt-1">支援檔案匯入與內建範例，輕鬆打造個人專屬牌卡！</p>
+                                    <h1 className="text-2xl font-bold tracking-wide">{t('title')}</h1>
+                                    <p className="text-emerald-100 text-sm mt-1">{t('subtitle')}</p>
                                 </div>
+                            </div>
+                            {/* 🌐 語言切換按鈕 */}
+                            <div className="flex bg-emerald-700/50 rounded-lg p-1 border border-emerald-500/30">
+                                <button onClick={() => setLang('zh-TW')} className={`px-3 py-1.5 text-sm font-bold rounded-md transition-colors ${lang === 'zh-TW' ? 'bg-white text-emerald-700 shadow-sm' : 'text-emerald-100 hover:text-white'}`}>繁中</button>
+                                <button onClick={() => setLang('zh-CN')} className={`px-3 py-1.5 text-sm font-bold rounded-md transition-colors ${lang === 'zh-CN' ? 'bg-white text-emerald-700 shadow-sm' : 'text-emerald-100 hover:text-white'}`}>简中</button>
+                                <button onClick={() => setLang('en')} className={`px-3 py-1.5 text-sm font-bold rounded-md transition-colors ${lang === 'en' ? 'bg-white text-emerald-700 shadow-sm' : 'text-emerald-100 hover:text-white'}`}>EN</button>
                             </div>
                         </div>
                     </div>
@@ -589,17 +786,17 @@
                                 <div className="flex justify-between items-center mb-4">
                                     <h2 className="text-base font-bold text-gray-800 flex items-center gap-2">
                                         <i className="ph-fill ph-pencil-simple-text text-emerald-500"></i>
-                                        1. 編輯與匯入字庫
+                                        {t('step1')}
                                     </h2>
-                                    <button onClick={clearInput} className="text-xs text-red-500 hover:text-red-600 px-2 py-1 rounded hover:bg-red-50 transition-colors">清空</button>
+                                    <button onClick={clearInput} className="text-xs text-red-500 hover:text-red-600 px-2 py-1 rounded hover:bg-red-50 transition-colors">{t('clearBtn')}</button>
                                 </div>
                                 
                                 <div className="flex gap-2 mb-3">
                                     <button onClick={() => setShowModal(true)} className="flex-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-sm font-bold py-2 rounded-lg border border-emerald-200 transition-colors flex items-center justify-center gap-1 shadow-sm">
-                                        <i className="ph-bold ph-books text-lg"></i>內建範例
+                                        <i className="ph-bold ph-books text-lg"></i>{t('builtInBtn')}
                                     </button>
                                     <button onClick={() => fileInputRef.current.click()} className="flex-1 bg-white hover:bg-gray-50 text-emerald-700 text-sm font-bold py-2 rounded-lg border border-emerald-200 transition-colors flex items-center justify-center gap-1 shadow-sm">
-                                        <i className="ph-bold ph-upload-simple text-lg"></i>匯入檔案
+                                        <i className="ph-bold ph-upload-simple text-lg"></i>{t('importBtn')}
                                     </button>
                                     <input 
                                         type="file" 
@@ -610,64 +807,62 @@
                                     />
                                 </div>
 
-                                {/* 🎯 新增的匯入格式說明提示框 */}
                                 <div className="text-xs text-emerald-700 bg-emerald-50/50 p-2.5 rounded-lg mb-3 border border-emerald-100 flex gap-2 items-start leading-relaxed">
                                     <i className="ph-fill ph-info text-base text-emerald-500"></i>
                                     <p>
-                                        <strong>匯入格式說明：</strong>檔案請存成 <b>.txt</b> 或 <b>.csv</b>。<br/>
-                                        內容請將生字或生詞用「<b>空白鍵</b>」、「<b>逗號</b>」或「<b>換行</b>」隔開即可。
+                                        <strong>{t('importTipTitle')}</strong> <span dangerouslySetInnerHTML={{ __html: t('importTipDesc') }} />
                                     </p>
                                 </div>
 
                                 <textarea 
                                     className="w-full h-32 p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-400 focus:outline-none text-base leading-relaxed"
-                                    placeholder="可手動輸入、貼上字詞 (用空白或換行分隔)；或點擊上方按鈕匯入內容..."
+                                    placeholder={t('placeholder')}
                                     value={inputText}
                                     onChange={(e) => setInputText(e.target.value)}
                                 ></textarea>
                                 <div className="mt-2 text-sm text-gray-500 flex justify-between font-bold">
-                                    <span>項目數量：{uniqueCount} / {targetCount}</span>
+                                    <span>{t('itemCount')} {uniqueCount} / {targetCount}</span>
                                 </div>
                             </div>
 
                             <div className="bg-white p-5 rounded-2xl shadow-sm border border-emerald-100">
                                 <h2 className="text-base font-bold text-gray-800 mb-3 flex items-center gap-2">
                                     <i className="ph-fill ph-gear text-emerald-500"></i>
-                                    2. 設定與排版
+                                    {t('step2')}
                                 </h2>
                                 <div className="space-y-4 mb-5">
                                     <div>
-                                        <label className="block text-xs font-bold text-gray-600 mb-1">每張字數 (難度)</label>
+                                        <label className="block text-xs font-bold text-gray-600 mb-1">{t('difficulty')}</label>
                                         <select className="w-full p-2 border border-gray-300 rounded-lg text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-emerald-400" value={wordsPerCard} onChange={(e) => setWordsPerCard(Number(e.target.value))}>
-                                            <option value={3}>簡單：3個 (需 7 個項目)</option>
-                                            <option value={4}>適中：4個 (需 13 個項目)</option>
-                                            <option value={6}>挑戰：6個 (需 31 個項目)</option>
-                                            <option value={8}>魔王：8個 (需 57 個項目)</option>
+                                            <option value={3}>{t('diff3')}</option>
+                                            <option value={4}>{t('diff4')}</option>
+                                            <option value={6}>{t('diff6')}</option>
+                                            <option value={8}>{t('diff8')}</option>
                                         </select>
                                     </div>
                                     
                                     <div>
-                                        <label className="block text-xs font-bold text-gray-600 mb-1">字體顏色</label>
+                                        <label className="block text-xs font-bold text-gray-600 mb-1">{t('colorLabel')}</label>
                                         <div className="flex bg-gray-100 rounded-lg p-1">
-                                            <button onClick={() => setColorMode('fixed')} className={`flex-1 text-xs py-1.5 rounded-md ${colorMode === 'fixed' ? 'bg-white shadow text-emerald-600 font-bold' : 'text-gray-500 hover:text-gray-700'}`}>固定 (易認字)</button>
-                                            <button onClick={() => setColorMode('random')} className={`flex-1 text-xs py-1.5 rounded-md ${colorMode === 'random' ? 'bg-white shadow text-emerald-600 font-bold' : 'text-gray-500 hover:text-gray-700'}`}>隨機 (挑戰高)</button>
+                                            <button onClick={() => setColorMode('fixed')} className={`flex-1 text-xs py-1.5 rounded-md ${colorMode === 'fixed' ? 'bg-white shadow text-emerald-600 font-bold' : 'text-gray-500 hover:text-gray-700'}`}>{t('colorFixed')}</button>
+                                            <button onClick={() => setColorMode('random')} className={`flex-1 text-xs py-1.5 rounded-md ${colorMode === 'random' ? 'bg-white shadow text-emerald-600 font-bold' : 'text-gray-500 hover:text-gray-700'}`}>{t('colorRandom')}</button>
                                         </div>
                                     </div>
 
                                     <div className="grid grid-cols-2 gap-3">
                                         <div>
-                                            <label className="block text-xs font-bold text-gray-600 mb-1">卡片形狀</label>
+                                            <label className="block text-xs font-bold text-gray-600 mb-1">{t('shapeLabel')}</label>
                                             <div className="flex bg-gray-100 rounded-lg p-1">
-                                                <button onClick={() => setCardShape('circle')} className={`flex-1 text-xs py-1.5 rounded-md ${cardShape === 'circle' ? 'bg-white shadow text-emerald-600 font-bold' : 'text-gray-500 hover:text-gray-700'}`}>圓形</button>
-                                                <button onClick={() => setCardShape('square')} className={`flex-1 text-xs py-1.5 rounded-md ${cardShape === 'square' ? 'bg-white shadow text-emerald-600 font-bold' : 'text-gray-500 hover:text-gray-700'}`}>方形</button>
+                                                <button onClick={() => setCardShape('circle')} className={`flex-1 text-[11px] py-1.5 rounded-md ${cardShape === 'circle' ? 'bg-white shadow text-emerald-600 font-bold' : 'text-gray-500 hover:text-gray-700'}`}>{t('shapeCircle')}</button>
+                                                <button onClick={() => setCardShape('square')} className={`flex-1 text-[11px] py-1.5 rounded-md ${cardShape === 'square' ? 'bg-white shadow text-emerald-600 font-bold' : 'text-gray-500 hover:text-gray-700'}`}>{t('shapeSquare')}</button>
                                             </div>
                                         </div>
                                         <div>
-                                            <label className="block text-xs font-bold text-gray-600 mb-1">列印大小</label>
+                                            <label className="block text-xs font-bold text-gray-600 mb-1">{t('sizeLabel')}</label>
                                             <div className="flex bg-gray-100 rounded-lg p-1">
-                                                <button onClick={() => setCardSize('lg')} className={`flex-1 text-xs py-1.5 rounded-md ${cardSize === 'lg' ? 'bg-white shadow text-emerald-600 font-bold' : 'text-gray-500 hover:text-gray-700'}`}>大</button>
-                                                <button onClick={() => setCardSize('md')} className={`flex-1 text-xs py-1.5 rounded-md ${cardSize === 'md' ? 'bg-white shadow text-emerald-600 font-bold' : 'text-gray-500 hover:text-gray-700'}`}>中</button>
-                                                <button onClick={() => setCardSize('sm')} className={`flex-1 text-xs py-1.5 rounded-md ${cardSize === 'sm' ? 'bg-white shadow text-emerald-600 font-bold' : 'text-gray-500 hover:text-gray-700'}`}>小</button>
+                                                <button onClick={() => setCardSize('lg')} className={`flex-1 text-xs py-1.5 rounded-md ${cardSize === 'lg' ? 'bg-white shadow text-emerald-600 font-bold' : 'text-gray-500 hover:text-gray-700'}`}>{t('sizeLg')}</button>
+                                                <button onClick={() => setCardSize('md')} className={`flex-1 text-xs py-1.5 rounded-md ${cardSize === 'md' ? 'bg-white shadow text-emerald-600 font-bold' : 'text-gray-500 hover:text-gray-700'}`}>{t('sizeMd')}</button>
+                                                <button onClick={() => setCardSize('sm')} className={`flex-1 text-xs py-1.5 rounded-md ${cardSize === 'sm' ? 'bg-white shadow text-emerald-600 font-bold' : 'text-gray-500 hover:text-gray-700'}`}>{t('sizeSm')}</button>
                                             </div>
                                         </div>
                                     </div>
@@ -675,7 +870,7 @@
                                 {error && <div className="mb-4 p-2 bg-red-50 text-red-600 text-xs rounded-lg border border-red-200 flex items-center gap-1"><i className="ph-fill ph-warning-circle"></i>{error}</div>}
                                 <button onClick={handleGenerate} className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 rounded-xl shadow-md active:scale-95 transition-all flex justify-center items-center gap-2">
                                     <i className="ph-bold ph-cards"></i>
-                                    產生卡片
+                                    {t('generateBtn')}
                                 </button>
                             </div>
                         </div>
@@ -684,21 +879,21 @@
                             {cards.length === 0 ? (
                                 <div className="h-full min-h-[400px] border-2 border-dashed border-gray-300 rounded-2xl flex flex-col items-center justify-center text-gray-400 p-8 no-print bg-white/50">
                                     <i className="ph-fill ph-cards text-6xl mb-4 text-emerald-200"></i>
-                                    <p className="text-xl font-bold text-gray-500">輸入字庫或匯入檔案後即可開始！</p>
+                                    <p className="text-xl font-bold text-gray-500">{t('emptyState')}</p>
                                 </div>
                             ) : (
                                 <div>
                                     <div className="mb-6 flex flex-col sm:flex-row justify-between items-center gap-4 no-print bg-white p-4 rounded-xl shadow-sm border border-emerald-50">
                                         <div className="text-sm font-bold text-emerald-700 flex items-center gap-2">
                                             <i className="ph-fill ph-hand-pointing text-xl"></i>
-                                            ✨ 提示：現在您可以直接用滑鼠或手指「拖曳」卡片上的字來微調位置喔！
+                                            {t('dragTip')}
                                         </div>
                                         <div className="flex gap-2">
                                             <button onClick={handleReshuffle} className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold py-2 px-4 rounded-lg border border-indigo-200 text-sm flex items-center gap-1">
-                                                <i className="ph-bold ph-arrows-clockwise"></i>洗牌重排
+                                                <i className="ph-bold ph-arrows-clockwise"></i>{t('reshuffleBtn')}
                                             </button>
                                             <button onClick={() => window.print()} className="bg-gray-800 hover:bg-gray-900 text-white font-bold py-2 px-5 rounded-lg shadow text-sm flex items-center gap-1">
-                                                <i className="ph-bold ph-printer"></i>列印卡片
+                                                <i className="ph-bold ph-printer"></i>{t('printBtn')}
                                             </button>
                                         </div>
                                     </div>
@@ -712,6 +907,7 @@
                                                 colorMode={colorMode}
                                                 wordColorMap={wordColorMap}
                                                 reshuffleKey={reshuffleKey}
+                                                dragTipText={t('dragHover')}
                                             />
                                         ))}
                                     </div>
@@ -721,7 +917,7 @@
                     </div>
 
                     <footer className="mt-8 mb-2 text-center text-emerald-800/60 text-sm font-medium print:fixed print:bottom-3 print:left-0 print:w-full print:text-gray-400 print:text-[12px] print:pb-0 print:mt-0">
-                        Powered by Gemini | Sophia老師的AI練習本
+                        {t('footer')}
                     </footer>
                 </div>
             );
