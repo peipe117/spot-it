@@ -200,9 +200,14 @@
                 diff4: "適中：4個 (需 13 個項目)",
                 diff6: "挑戰：6個 (需 31 個項目)",
                 diff8: "魔王：8個 (需 57 個項目)",
+                fontScaleLabel: "字體大小微調",
                 colorLabel: "字體顏色",
                 colorFixed: "固定 (易認字)",
                 colorRandom: "隨機 (挑戰高)",
+                fontStyleLabel: "字體風格",
+                fontSans: "黑體",
+                fontKaiti: "楷體",
+                fontSerif: "宋體",
                 shapeLabel: "卡片形狀",
                 shapeCircle: "圓形",
                 shapeSquare: "方形",
@@ -249,9 +254,14 @@
                 diff4: "适中：4个 (需 13 个项目)",
                 diff6: "挑战：6个 (需 31 个项目)",
                 diff8: "魔王：8个 (需 57 个项目)",
+                fontScaleLabel: "字体大小微调",
                 colorLabel: "字体颜色",
                 colorFixed: "固定 (易认字)",
                 colorRandom: "随机 (挑战高)",
+                fontStyleLabel: "字体风格",
+                fontSans: "黑体",
+                fontKaiti: "楷体",
+                fontSerif: "宋体",
                 shapeLabel: "卡片形状",
                 shapeCircle: "圆形",
                 shapeSquare: "方形",
@@ -298,9 +308,14 @@
                 diff4: "Normal: 4 (Needs 13 items)",
                 diff6: "Hard: 6 (Needs 31 items)",
                 diff8: "Expert: 8 (Needs 57 items)",
+                fontScaleLabel: "Font Size Scale",
                 colorLabel: "Text Color",
                 colorFixed: "Fixed (Easier)",
                 colorRandom: "Random (Harder)",
+                fontStyleLabel: "Font Style",
+                fontSans: "Sans",
+                fontKaiti: "Brush",
+                fontSerif: "Serif",
                 shapeLabel: "Card Shape",
                 shapeCircle: "Circle",
                 shapeSquare: "Square",
@@ -419,7 +434,7 @@
             return colors;
         };
 
-        function Card({ words, shape, size, colorMode, wordColorMap, reshuffleKey, dragTipText }) {
+        function Card({ words, shape, size, colorMode, wordColorMap, reshuffleKey, dragTipText, fontFamily, fontScale }) {
             const n = words.length;
             
             const fontSizeMap = {
@@ -531,6 +546,14 @@
 
             let shapeClass = shape === 'circle' ? 'rounded-full' : 'rounded-none';
 
+            const getFontFamilyString = (type) => {
+                switch(type) {
+                    case 'kaiti': return '"BiaoKai", "Kaiti TC", "STKaiti", "KaiTi", serif';
+                    case 'serif': return '"PMingLiU", "MingLiU", "Songti TC", "SimSun", serif';
+                    case 'sans-serif': default: return '"PingFang TC", "Heiti TC", "Microsoft JhengHei", "SimHei", sans-serif';
+                }
+            };
+
             return (
                 <div className="card-container p-2 w-full mx-auto">
                     <div className={`card-base ${shapeClass}`}>
@@ -549,7 +572,8 @@
                                         top: `${item.y}%`,
                                         transform: `translate(-50%, -50%) rotate(${item.rotation}deg) scale(${item.scale})`,
                                         color: color,
-                                        fontSize: `${baseFontSize}px`,
+                                        fontFamily: getFontFamilyString(fontFamily),
+                                        fontSize: `${baseFontSize * fontScale}px`,
                                         zIndex: item.zIndex
                                     }}
                                     title={dragTipText}
@@ -581,6 +605,9 @@
             const [cardSize, setCardSize] = React.useState("md"); 
             
             const [colorMode, setColorMode] = React.useState("fixed"); 
+            const [fontFamily, setFontFamily] = React.useState("sans-serif"); 
+            const [fontScale, setFontScale] = React.useState(1.0); 
+            
             const [wordColorMap, setWordColorMap] = React.useState({});
 
             const [toast, setToast] = React.useState("");
@@ -830,7 +857,9 @@
                                     <i className="ph-fill ph-gear text-emerald-500"></i>
                                     {t('step2')}
                                 </h2>
-                                <div className="space-y-4 mb-5">
+                                
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+                                    {/* 難度與字體微調 */}
                                     <div>
                                         <label className="block text-xs font-bold text-gray-600 mb-1">{t('difficulty')}</label>
                                         <select className="w-full p-2 border border-gray-300 rounded-lg text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-emerald-400" value={wordsPerCard} onChange={(e) => setWordsPerCard(Number(e.target.value))}>
@@ -840,7 +869,25 @@
                                             <option value={8}>{t('diff8')}</option>
                                         </select>
                                     </div>
-                                    
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-600 mb-1 flex justify-between">
+                                            <span>{t('fontScaleLabel')}</span>
+                                            <span className="text-emerald-600">{Math.round(fontScale * 100)}%</span>
+                                        </label>
+                                        <div className="flex items-center h-[38px]">
+                                            <input 
+                                                type="range" 
+                                                min="0.6" 
+                                                max="1.6" 
+                                                step="0.05" 
+                                                value={fontScale} 
+                                                onChange={(e) => setFontScale(parseFloat(e.target.value))}
+                                                className="w-full accent-emerald-500"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* 顏色與字體風格 */}
                                     <div>
                                         <label className="block text-xs font-bold text-gray-600 mb-1">{t('colorLabel')}</label>
                                         <div className="flex bg-gray-100 rounded-lg p-1">
@@ -848,22 +895,29 @@
                                             <button onClick={() => setColorMode('random')} className={`flex-1 text-xs py-1.5 rounded-md ${colorMode === 'random' ? 'bg-white shadow text-emerald-600 font-bold' : 'text-gray-500 hover:text-gray-700'}`}>{t('colorRandom')}</button>
                                         </div>
                                     </div>
-
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <div>
-                                            <label className="block text-xs font-bold text-gray-600 mb-1">{t('shapeLabel')}</label>
-                                            <div className="flex bg-gray-100 rounded-lg p-1">
-                                                <button onClick={() => setCardShape('circle')} className={`flex-1 text-[11px] py-1.5 rounded-md ${cardShape === 'circle' ? 'bg-white shadow text-emerald-600 font-bold' : 'text-gray-500 hover:text-gray-700'}`}>{t('shapeCircle')}</button>
-                                                <button onClick={() => setCardShape('square')} className={`flex-1 text-[11px] py-1.5 rounded-md ${cardShape === 'square' ? 'bg-white shadow text-emerald-600 font-bold' : 'text-gray-500 hover:text-gray-700'}`}>{t('shapeSquare')}</button>
-                                            </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-600 mb-1">{t('fontStyleLabel')}</label>
+                                        <div className="flex bg-gray-100 rounded-lg p-1">
+                                            <button onClick={() => setFontFamily('sans-serif')} className={`flex-1 text-xs py-1.5 rounded-md ${fontFamily === 'sans-serif' ? 'bg-white shadow text-emerald-600 font-bold' : 'text-gray-500 hover:text-gray-700'}`}>{t('fontSans')}</button>
+                                            <button onClick={() => setFontFamily('kaiti')} className={`flex-1 text-xs py-1.5 rounded-md ${fontFamily === 'kaiti' ? 'bg-white shadow text-emerald-600 font-bold' : 'text-gray-500 hover:text-gray-700'}`}>{t('fontKaiti')}</button>
+                                            <button onClick={() => setFontFamily('serif')} className={`flex-1 text-xs py-1.5 rounded-md ${fontFamily === 'serif' ? 'bg-white shadow text-emerald-600 font-bold' : 'text-gray-500 hover:text-gray-700'}`}>{t('fontSerif')}</button>
                                         </div>
-                                        <div>
-                                            <label className="block text-xs font-bold text-gray-600 mb-1">{t('sizeLabel')}</label>
-                                            <div className="flex bg-gray-100 rounded-lg p-1">
-                                                <button onClick={() => setCardSize('lg')} className={`flex-1 text-xs py-1.5 rounded-md ${cardSize === 'lg' ? 'bg-white shadow text-emerald-600 font-bold' : 'text-gray-500 hover:text-gray-700'}`}>{t('sizeLg')}</button>
-                                                <button onClick={() => setCardSize('md')} className={`flex-1 text-xs py-1.5 rounded-md ${cardSize === 'md' ? 'bg-white shadow text-emerald-600 font-bold' : 'text-gray-500 hover:text-gray-700'}`}>{t('sizeMd')}</button>
-                                                <button onClick={() => setCardSize('sm')} className={`flex-1 text-xs py-1.5 rounded-md ${cardSize === 'sm' ? 'bg-white shadow text-emerald-600 font-bold' : 'text-gray-500 hover:text-gray-700'}`}>{t('sizeSm')}</button>
-                                            </div>
+                                    </div>
+
+                                    {/* 形狀與大小 */}
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-600 mb-1">{t('shapeLabel')}</label>
+                                        <div className="flex bg-gray-100 rounded-lg p-1">
+                                            <button onClick={() => setCardShape('circle')} className={`flex-1 text-[11px] py-1.5 rounded-md ${cardShape === 'circle' ? 'bg-white shadow text-emerald-600 font-bold' : 'text-gray-500 hover:text-gray-700'}`}>{t('shapeCircle')}</button>
+                                            <button onClick={() => setCardShape('square')} className={`flex-1 text-[11px] py-1.5 rounded-md ${cardShape === 'square' ? 'bg-white shadow text-emerald-600 font-bold' : 'text-gray-500 hover:text-gray-700'}`}>{t('shapeSquare')}</button>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-600 mb-1">{t('sizeLabel')}</label>
+                                        <div className="flex bg-gray-100 rounded-lg p-1">
+                                            <button onClick={() => setCardSize('lg')} className={`flex-1 text-xs py-1.5 rounded-md ${cardSize === 'lg' ? 'bg-white shadow text-emerald-600 font-bold' : 'text-gray-500 hover:text-gray-700'}`}>{t('sizeLg')}</button>
+                                            <button onClick={() => setCardSize('md')} className={`flex-1 text-xs py-1.5 rounded-md ${cardSize === 'md' ? 'bg-white shadow text-emerald-600 font-bold' : 'text-gray-500 hover:text-gray-700'}`}>{t('sizeMd')}</button>
+                                            <button onClick={() => setCardSize('sm')} className={`flex-1 text-xs py-1.5 rounded-md ${cardSize === 'sm' ? 'bg-white shadow text-emerald-600 font-bold' : 'text-gray-500 hover:text-gray-700'}`}>{t('sizeSm')}</button>
                                         </div>
                                     </div>
                                 </div>
@@ -908,6 +962,8 @@
                                                 wordColorMap={wordColorMap}
                                                 reshuffleKey={reshuffleKey}
                                                 dragTipText={t('dragHover')}
+                                                fontFamily={fontFamily}
+                                                fontScale={fontScale}
                                             />
                                         ))}
                                     </div>
